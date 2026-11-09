@@ -34,9 +34,7 @@ jobs:
       - name: Install SceShaccCgExt
         run: |
           git clone https://github.com/bythos14/SceShaccCgExt.git
-          cmake -S SceShaccCgExt -B SceShaccCgExt/build \\
-            -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" \\
-            -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi"
+          cmake -S SceShaccCgExt -B SceShaccCgExt/build -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi"
           cmake --build SceShaccCgExt/build --parallel
           cmake --install SceShaccCgExt/build
 
