@@ -38,6 +38,8 @@ target_link_libraries(${PROJECT_NAME}
   SceIofilemgr_stub
   SceGxm_stub
   SceSysmodule_stub
+  taihen_stub
+  stdc++
   m
 )
 
