@@ -32,6 +32,7 @@ target_link_libraries(${PROJECT_NAME}
   SceTouch_stub
   SceCtrl_stub
   SceDisplay_stub
+  SceIofilemgr_stub
   SceGxm_stub
   SceSysmodule_stub
   m
