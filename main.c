@@ -1,29 +1,55 @@
 #include <vitasdk.h>
 #include <vitaGL.h>
-#include <kubridge.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
-static int mod_unity = 0;
-static int mod_il2cpp = 0;
-static int mod_main = 0;
+#define GAME_DIR "ux0:data/mightymicros/"
+#define LIB_DIR  GAME_DIR "lib/armeabi-v7a/"
+
+static FILE *log_file;
+
+static void log_line(const char *message) {
+    if (log_file) {
+        fprintf(log_file, "%s\n", message);
+        fflush(log_file);
+    }
+}
+
+static int check_file(const char *path, const char *label) {
+    FILE *file = fopen(path, "rb");
+    char line[256];
+    if (!file) {
+        snprintf(line, sizeof(line), "MISSING: %s", label);
+        log_line(line);
+        return 0;
+    }
+    fclose(file);
+    snprintf(line, sizeof(line), "FOUND: %s", label);
+    log_line(line);
+    return 1;
+}
 
 int main(int argc, char *argv[]) {
-    // 1. Initialize vitaGL graphics subsystem
+    int ready = 1;
+
+    sceIoMkdir(GAME_DIR, 0777);
+    log_file = fopen(GAME_DIR "loader.log", "w");
+    log_line("Mighty Micros Vita loader - file/ABI diagnostic");
+    log_line("This build does not yet execute Android Unity libraries.");
+
+    ready &= check_file(LIB_DIR "libmain.so", "libmain.so");
+    ready &= check_file(LIB_DIR "libunity.so", "libunity.so");
+    ready &= check_file(LIB_DIR "libil2cpp.so", "libil2cpp.so");
+    ready &= check_file(LIB_DIR "global-metadata.dat", "global-metadata.dat");
+    ready &= check_file(GAME_DIR "assets/bin/Data/globalgamemanagers", "globalgamemanagers");
+
+    log_line(ready ? "RESULT: required core files are present." :
+                     "RESULT: one or more required files are missing.");
+    log_line("See ux0:data/mightymicros/loader.log.");
+
     vglInitExtended(0, 960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
-
-    // 2. Load Unity Engine runtime via kubridge
-    mod_unity = kuBridgeLoadComponent("ux0:data/game/lib/armeabi-v7a/libunity.so");
-
-    // 3. Load IL2CPP Game Logic
-    mod_il2cpp = kuBridgeLoadComponent("ux0:data/game/lib/armeabi-v7a/libil2cpp.so");
-
-    // 4. Load Main Entry
-    mod_main = kuBridgeLoadComponent("ux0:data/game/lib/armeabi-v7a/libmain.so");
-
-    // Main Render Loop
     while (1) {
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.025f, 0.025f, 0.04f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         vglSwapBuffers(GL_FALSE);
     }
