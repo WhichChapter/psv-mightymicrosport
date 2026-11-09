@@ -25,6 +25,8 @@ jobs:
         run: |
           git clone https://github.com/TheOfficialFloW/kubridge.git
           cd kubridge
+          # Current VitaSDK headers take user pointers directly; kubridge upstream still casts them to integers.
+          sed -i 's/(uintptr_t)name/name/; s/(uintptr_t)opt/opt/' main.c
           mkdir build && cd build
           cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
           make install
