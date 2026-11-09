@@ -5,16 +5,34 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: vitasdk/vitasdk:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Vita Libraries
+      - name: Set up VitaSDK
         run: |
-          pacman -Syu --noconfirm arm-vita-eabi-vitagl arm-vita-eabi-kubridge
+          SDK_URL=$(wget -qO- https://github.com/vitasdk/vita-headers/raw/master/.travis.d/last_built_toolchain.py | python3 - master linux)
+          echo "Downloading VitaSDK: $SDK_URL"
+          mkdir -p $GITHUB_WORKSPACE/vitasdk
+          wget -O- "$SDK_URL" | tar xj -C $GITHUB_WORKSPACE/vitasdk --strip-components=1
+          echo "VITASDK=$GITHUB_WORKSPACE/vitasdk" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/vitasdk/bin" >> $GITHUB_PATH
 
-      - name: Download Large SO File
+      - name: Install kubridge stubs
+        run: |
+          git clone https://github.com/TheOfficialFloW/kubridge.git
+          cd kubridge
+          mkdir build && cd build
+          cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
+          make install
+
+      - name: Install vitaGL
+        run: |
+          git clone https://github.com/Rinnegatamante/vitaGL.git
+          cd vitaGL
+          make install
+
+      - name: Download Game SO File
         run: |
           mkdir -p lib/armeabi-v7a
           curl -L "https://files.catbox.moe/ieawuf.so" -o lib/armeabi-v7a/libil2cpp.so
@@ -23,7 +41,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake ..
+          cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
           make
 
       - name: Upload VPK Artifact
