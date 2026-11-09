@@ -10,6 +10,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Vita Libraries
+        run: |
+          pacman -Syu --noconfirm arm-vita-eabi-vitagl arm-vita-eabi-kubridge
+
       - name: Download Large SO File
         run: |
           mkdir -p lib/armeabi-v7a
