@@ -34,6 +34,22 @@ jobs:
       - name: Install SceShaccCgExt
         run: |
           git clone https://github.com/bythos14/SceShaccCgExt.git
+          # GCC 15 rejects taihen's unprototyped TAI_CONTINUE call for this 8-argument hook.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("SceShaccCgExt/src/shacccg_ext.c")
+          s = p.read_text()
+          old = "return TAI_CONTINUE(void *, hookRef, param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);"
+          new = """struct _tai_hook_user *cur = (struct _tai_hook_user *)hookRef;
+          struct _tai_hook_user *next = (struct _tai_hook_user *)cur->next;
+          typedef void *(*shacc_hook_fn)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+          return next == NULL
+              ? ((shacc_hook_fn)cur->old)(param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8)
+              : ((shacc_hook_fn)next->func)(param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);"""
+          if old not in s:
+              raise SystemExit("Expected SceShaccCgExt hook call was not found; refusing an unsafe patch")
+          p.write_text(s.replace(old, new))
+          PY
           cmake -S SceShaccCgExt -B SceShaccCgExt/build -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi"
           cmake --build SceShaccCgExt/build --parallel
           cmake --install SceShaccCgExt/build
