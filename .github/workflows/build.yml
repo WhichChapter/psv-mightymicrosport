@@ -14,6 +14,7 @@ jobs:
           git clone https://github.com/vitasdk/vdpm.git
           export VITASDK="$GITHUB_WORKSPACE/vitasdk"
           export VITASDK_CHANNEL=nightly-softfp
+          export VDPM_NONINTERACTIVE=1
           cd vdpm
           ./bootstrap-vitasdk.sh
           echo "VITASDK=$VITASDK" >> $GITHUB_ENV
