@@ -12,11 +12,13 @@ jobs:
       - name: Set up VitaSDK (softfp)
         run: |
           git clone https://github.com/vitasdk/vdpm.git
+          export VITASDK="$GITHUB_WORKSPACE/vitasdk"
+          export VITASDK_CHANNEL=nightly-softfp
           cd vdpm
-          VITASDK="$GITHUB_WORKSPACE/vitasdk" VITASDK_CHANNEL=nightly-softfp ./bootstrap-vitasdk.sh
-          echo "VITASDK=$GITHUB_WORKSPACE/vitasdk" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/vitasdk/bin" >> $GITHUB_PATH
-          "$GITHUB_WORKSPACE/vitasdk/bin/vdpm" install taihen
+          ./bootstrap-vitasdk.sh
+          echo "VITASDK=$VITASDK" >> $GITHUB_ENV
+          echo "$VITASDK/bin" >> $GITHUB_PATH
+          "$VITASDK/bin/vdpm" install taihen
 
       - name: Install kubridge stubs
         run: |
