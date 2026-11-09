@@ -23,7 +23,7 @@ jobs:
           git clone https://github.com/TheOfficialFloW/kubridge.git
           cd kubridge
           mkdir build && cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
           make install
 
       - name: Install vitaGL
@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
           make
 
       - name: Upload VPK Artifact
