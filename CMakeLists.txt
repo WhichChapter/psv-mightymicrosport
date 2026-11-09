@@ -31,7 +31,7 @@ target_link_libraries(${PROJECT_NAME}
   mathneon
   vitashark
   SceShaccCgExt
-  kubridge
+  kubridge_stub
   SceTouch_stub
   SceCtrl_stub
   SceDisplay_stub
