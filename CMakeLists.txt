@@ -40,6 +40,11 @@ target_link_libraries(${PROJECT_NAME}
   SceSysmodule_stub
   taihen_stub
   stdc++
+  SceSharedFb_stub
+  SceCommonDialog_stub
+  SceAppMgr_stub
+  SceDmacMgr_stub
+  SceShaccCg_stub
   m
 )
 
