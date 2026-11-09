@@ -8,13 +8,6 @@
 
 static FILE *log_file;
 
-/* vitaGL uses the kernel DMA copy import. For this diagnostic launcher, a
- * normal CPU copy is sufficient and avoids requiring an unavailable stub. */
-int sceDmacMemcpy(void *dst, const void *src, SceSize size) {
-    memcpy(dst, src, size);
-    return 0;
-}
-
 static void log_line(const char *message) {
     if (log_file) {
         fprintf(log_file, "%s\n", message);
