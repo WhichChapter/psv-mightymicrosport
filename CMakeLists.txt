@@ -8,27 +8,27 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
-project(vita_port)
+project(mightymicros)
 
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(VITA_APP_NAME "My Vita Port")
-set(VITA_TITLEID "VITA00001")
+set(VITA_APP_NAME "LEGO DC Mighty Micros")
+set(VITA_TITLEID "MTHMICROS")
 set(VITA_VERSION "01.00")
 
 # Source files
 set(SOURCES main.c)
 
 # Create ELF executable
-add_executable(vita_port ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Include directories
-target_include_directories(vita_port PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Libraries to link
-target_link_libraries(vita_port
+target_link_libraries(${PROJECT_NAME}
   vitaGL
-  kuBridge_stub
+  kubridge
   SceTouch_stub
   SceCtrl_stub
   SceDisplay_stub
@@ -37,8 +37,8 @@ target_link_libraries(vita_port
   m
 )
 
-# Modern vitasdk VPK creation macro
-vita_create_vpk(vita_port.vpk ${VITA_TITLEID} vita_port
+# Generate VPK package using the modern vitasdk macro
+vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}
   NAME ${VITA_APP_NAME}
   VERSION ${VITA_VERSION}
 )
