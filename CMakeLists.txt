@@ -28,6 +28,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
 # Libraries to link
 target_link_libraries(${PROJECT_NAME}
   vitaGL
+  vitashark
   kubridge
   SceTouch_stub
   SceCtrl_stub
