@@ -25,7 +25,7 @@ add_executable(vita_port ${SOURCES})
 # Include directories
 target_include_directories(vita_port PRIVATE ${CMAKE_SOURCE_DIR})
 
-# Libraries to link (vitaGL, kubridge, math, system libs)
+# Libraries to link
 target_link_libraries(vita_port
   vitaGL
   kuBridge_stub
@@ -37,9 +37,8 @@ target_link_libraries(vita_port
   m
 )
 
-# Generate VPK package
-vita_create_stubs(vita_port)
-vita_make_vpk(vita_port.vpk ${VITA_TITLEID} vita_port
+# Modern vitasdk VPK creation macro
+vita_create_vpk(vita_port.vpk ${VITA_TITLEID} vita_port
   NAME ${VITA_APP_NAME}
   VERSION ${VITA_VERSION}
 )
