@@ -1,4 +1,4 @@
-# LEGO DC Mighty Micros — PS Vita experiment
+# LEGO DC Mighty Micros — PS Vita experiments
 
 This repository is an experimental native wrapper for the Android ARMv7 release of LEGO DC Mighty Micros (Unity 2017.2 / IL2CPP).
 
