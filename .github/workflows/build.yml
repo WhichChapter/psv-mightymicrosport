@@ -10,6 +10,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download Large SO File
+        run: |
+          mkdir -p lib/armeabi-v7a
+          curl -L "YOUR_DIRECT_DOWNLOAD_LINK_HERE" -o lib/armeabi-v7a/libil2cpp.so
+
       - name: Compile Project
         run: |
           mkdir build
