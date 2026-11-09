@@ -13,7 +13,7 @@ jobs:
       - name: Download Large SO File
         run: |
           mkdir -p lib/armeabi-v7a
-          curl -L "YOUR_DIRECT_DOWNLOAD_LINK_HERE" -o lib/armeabi-v7a/libil2cpp.so
+          curl -L "https://files.catbox.moe/ieawuf.so" -o lib/armeabi-v7a/libil2cpp.so
 
       - name: Compile Project
         run: |
