@@ -9,14 +9,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up VitaSDK
+      - name: Set up VitaSDK (softfp)
         run: |
-          SDK_URL=$(wget -qO- https://github.com/vitasdk/vita-headers/raw/master/.travis.d/last_built_toolchain.py | python3 - master linux)
-          echo "Downloading VitaSDK: $SDK_URL"
-          mkdir -p $GITHUB_WORKSPACE/vitasdk
-          wget -O- "$SDK_URL" | tar xj -C $GITHUB_WORKSPACE/vitasdk --strip-components=1
+          git clone https://github.com/vitasdk/vdpm.git
+          cd vdpm
+          VITASDK="$GITHUB_WORKSPACE/vitasdk" VITASDK_CHANNEL=nightly-softfp ./bootstrap-vitasdk.sh
           echo "VITASDK=$GITHUB_WORKSPACE/vitasdk" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/vitasdk/bin" >> $GITHUB_PATH
+          "$GITHUB_WORKSPACE/vitasdk/bin/vdpm" install taihen
 
       - name: Install kubridge stubs
         run: |
