@@ -31,10 +31,15 @@ jobs:
           cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ..
           make install
 
+      - name: Install vitaShaRK
+        run: |
+          git clone https://github.com/Rinnegatamante/vitaShaRK.git
+          make -C vitaShaRK install
+
       - name: Install vitaGL
         run: |
           git clone https://github.com/Rinnegatamante/vitaGL.git
-          make -C vitaGL install
+          make -C vitaGL install SOFTFP_ABI=1
 
       - name: Compile Project
         run: |
