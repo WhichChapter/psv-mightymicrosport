@@ -59,6 +59,11 @@ jobs:
           git clone https://github.com/Rinnegatamante/vitaShaRK.git
           make -C vitaShaRK install
 
+      - name: Install math-neon
+        run: |
+          git clone https://github.com/Rinnegatamante/math-neon.git
+          make -C math-neon install
+
       - name: Install vitaGL
         run: |
           git clone https://github.com/Rinnegatamante/vitaGL.git
