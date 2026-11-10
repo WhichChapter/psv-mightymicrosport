@@ -81,3 +81,20 @@ void mm_initialize_dependencies(void) {
 so_module *mm_unity_module(void) {
     return mm_loaded_count > 0 ? &mm_dependencies[0] : 0;
 }
+
+/* Resolve dlsym requests against the Android libraries loaded by so_util.
+   Unity 2017 dynamically looks up the IL2CPP C API instead of linking it
+   through DT_NEEDED, so returning NULL for these names prevents engine boot. */
+extern so_module so_mod;
+
+uintptr_t mm_find_loaded_symbol(const char *symbol) {
+    uintptr_t address = so_symbol(&so_mod, symbol);
+    if (address) return address;
+
+    for (unsigned int i = 0; i < mm_loaded_count; ++i) {
+        address = so_symbol(&mm_dependencies[i], symbol);
+        if (address) return address;
+    }
+
+    return 0;
+}
