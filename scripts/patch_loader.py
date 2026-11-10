@@ -219,14 +219,15 @@ fjni_log_text = fjni_logger.read_text(encoding="utf-8")
 if "#include <psp2/io/fcntl.h>" not in fjni_log_text:
     fjni_log_text = fjni_log_text.replace(
         '#include <psp2/kernel/threadmgr.h>',
-        '#include <psp2/kernel/threadmgr.h>\\n#include <psp2/io/fcntl.h>', 1)
+        '#include <psp2/kernel/threadmgr.h>\n#include <psp2/io/fcntl.h>', 1)
 old_print = "    sceClibPrintf(_fjni_log_buffer_2);"
-new_print = """    sceClibPrintf(_fjni_log_buffer_2); \\
-    SceUID fjni_fd = sceIoOpen("ux0:data/mightymicros.log", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777); \\
-    if (fjni_fd >= 0) { \\
-        sceIoWrite(fjni_fd, _fjni_log_buffer_2, strlen(_fjni_log_buffer_2)); \\
-        sceIoClose(fjni_fd); \\
-    }"""
+new_print = (
+    "    sceClibPrintf(_fjni_log_buffer_2); \\\n"
+    "    SceUID fjni_fd = sceIoOpen(\"ux0:data/mightymicros.log\", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777); \\\n"
+    "    if (fjni_fd >= 0) { \\\n"
+    "        sceIoWrite(fjni_fd, _fjni_log_buffer_2, strlen(_fjni_log_buffer_2)); \\\n"
+    "        sceIoClose(fjni_fd); \\\n"
+    "    }")
 if 'sceIoOpen("ux0:data/mightymicros.log"' not in fjni_log_text:
     if old_print not in fjni_log_text:
         raise SystemExit("Could not add persistent FalsoJNI diagnostics")
