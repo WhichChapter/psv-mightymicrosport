@@ -147,7 +147,7 @@ jobs:
           }
           for name, dimensions in expected.items():
               data = Path(name).read_bytes()
-          if data[:8] != bytes([137, 80, 78, 71, 13, 10, 26, 10]):
+              if data[:8] != bytes([137, 80, 78, 71, 13, 10, 26, 10]):
                   raise SystemExit(f"{name}: invalid PNG")
               width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
               if (width, height) != dimensions or depth != 8 or color != 3 or interlace != 0:
