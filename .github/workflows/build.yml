@@ -147,7 +147,7 @@ jobs:
           }
           for name, dimensions in expected.items():
               data = Path(name).read_bytes()
-              if data[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+          if data[:8] != bytes([137, 80, 78, 71, 13, 10, 26, 10]):
                   raise SystemExit(f"{name}: invalid PNG")
               width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
               if (width, height) != dimensions or depth != 8 or color != 3 or interlace != 0:
@@ -226,11 +226,11 @@ jobs:
               for name in part_names:
                   archive.write(parts_dir / name, f"parts/{name}")
               archive.writestr("README-FIRST.txt",
-                  "MIGHTY MICROS DATA INSTALL\\n\\n"
-                  "1. Extract this ZIP to ux0:data/mightymicros-parts/\\n"
-                  "2. Open each ZIP inside parts/ and extract its contents into ux0:data/mightymicros/\\n"
-                  "3. Repeat for every numbered part. The numbered ZIPs can be extracted in any order.\\n"
-                  "4. Do not rename the assets or lib folders.\\n")
+              "MIGHTY MICROS DATA INSTALL" + chr(10) * 2 +
+              "1. Extract this ZIP to ux0:data/mightymicros-parts/" + chr(10) +
+              "2. Open each ZIP inside parts/ and extract its contents into ux0:data/mightymicros/" + chr(10) +
+              "3. Repeat for every numbered part. The numbered ZIPs can be extracted in any order." + chr(10) +
+              "4. Do not rename the assets or lib folders." + chr(10))
           print(f"Created {outer}: {len(part_names)} inner ZIP parts, {outer.stat().st_size:,} bytes")
 
           # Validate every inner archive and ensure no file is omitted/duplicated.
