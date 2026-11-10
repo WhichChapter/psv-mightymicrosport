@@ -133,7 +133,9 @@ jobs:
           # VitaShell rejects VPKs whose sce_sys LiveArea PNGs are not
           # quantized to an 8-bit indexed palette. This was the cause of
           # error 0x8010113D (the previous icon0 was RGBA and pic0 was RGB).
-          for img in extras/livearea/icon0.png extras/livearea/pic0.png extras/livearea/contents/bg0.png extras/livearea/contents/startup.png; do
+          # The generated icon and banner are the two RGB/RGBA images.
+          # The upstream template already supplies indexed bg0/startup images.
+          for img in extras/livearea/icon0.png extras/livearea/pic0.png; do
             test -f "$img"
             tmp="${img}.quantized.png"
             pngquant --force --output "$tmp" 256 "$img"
@@ -146,8 +148,6 @@ jobs:
           expected = {
               "extras/livearea/icon0.png": (128, 128),
               "extras/livearea/pic0.png": (960, 544),
-              "extras/livearea/contents/bg0.png": (840, 500),
-              "extras/livearea/contents/startup.png": (280, 158),
           }
           for name, dimensions in expected.items():
               data = Path(name).read_bytes()
