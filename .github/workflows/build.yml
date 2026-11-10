@@ -110,7 +110,7 @@ jobs:
           if [ -f ../../package/game/res/drawable-xhdpi-v4/app_banner.png ]; then
             convert ../../package/game/res/drawable-xhdpi-v4/app_banner.png -resize 960x540! -gravity center -background black -extent 960x544 extras/livearea/pic0.png
           fi
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DNDK_PORT=ON -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
           cmake --build build --parallel 2
           mkdir -p ../../out
           cp build/mighty_micros.vpk ../../out/
