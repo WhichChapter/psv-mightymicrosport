@@ -31,6 +31,14 @@ jobs:
           echo "$VITASDK/bin" >> "$GITHUB_PATH"
           "$VITASDK/bin/arm-vita-eabi-gcc" --version
 
+      - name: Install softfp VitaSDK libraries
+        shell: bash
+        run: |
+          set -euxo pipefail
+          for package in opensles libsndfile lame mpg123 libvorbis libogg flac opus zlib kubridge taihen libmathneon SceShaccCgExt vitaShaRK; do
+            "$VITASDK/bin/vdpm" install "$package"
+          done
+
       - name: Fetch real Android-to-Vita loader framework
         run: |
           git clone --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
