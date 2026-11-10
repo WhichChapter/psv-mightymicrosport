@@ -10,11 +10,11 @@ This is the active Android-to-Vita port attempt. The original branch is left unt
 - Native libraries: `libmain.so`, `libunity.so`, and `libil2cpp.so`
 - Vita title ID: `MTHM00001`
 
-## Latest build
+## Last verified CI build
 
 [Open GitHub Actions build #91](https://github.com/WhichChapter/psv-mightymicrosport/actions/runs/42905797908)
 
-Build #91 successfully compiles the Vita loader, converts it to Sony ELF, and packages the VPK.
+Build #91 (before the dedicated UnityMain-thread change) successfully compiled the Vita loader, converted it to Sony ELF, and packaged the VPK. The latest runtime changes have been pushed to `GPT`; their CI result still needs checking.
 
 The `mighty-micros-port-build` artifact (7-day retention) contains:
 
