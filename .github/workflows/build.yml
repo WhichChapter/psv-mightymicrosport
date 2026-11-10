@@ -104,6 +104,8 @@ jobs:
           cp ../../source/getentropy.c source/getentropy.c
           cp ../../source/native_registry.c source/native_registry.c
           cp ../../source/native_registry.h source/native_registry.h
+          cp ../../source/native_window.c source/native_window.c
+          cp ../../source/native_window.h source/native_window.h
           python3 ../../scripts/patch_loader.py
           if [ -f ../../package/game/res/drawable-xxxhdpi-v4/app_icon.png ]; then
             convert ../../package/game/res/drawable-xxxhdpi-v4/app_icon.png -resize 128x128! extras/livearea/icon0.png
