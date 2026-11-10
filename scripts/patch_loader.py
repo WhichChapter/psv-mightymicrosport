@@ -82,5 +82,22 @@ if changed != 1:
     raise SystemExit("Could not hook FalsoJNI RegisterNatives")
 fjni.write_text(fjni_text, encoding="utf-8")
 
+logger = vendor / "source" / "utils" / "logger.c"
+logger_text = logger.read_text(encoding="utf-8")
+if "#include <psp2/io/fcntl.h>" not in logger_text:
+    logger_text = logger_text.replace("#include <stdatomic.h>", "#include <stdatomic.h>\\n#include <string.h>\\n#include <psp2/io/fcntl.h>", 1)
+log_call = "    sceClibPrintf(buffer_b);"
+file_log = """    sceClibPrintf(buffer_b);
+    SceUID log_fd = sceIoOpen("ux0:data/mightymicros.log", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777);
+    if (log_fd >= 0) {
+        sceIoWrite(log_fd, buffer_b, strlen(buffer_b));
+        sceIoClose(log_fd);
+    }"""
+if "ux0:data/mightymicros.log" not in logger_text:
+    if log_call not in logger_text:
+        raise SystemExit("Could not add persistent Vita diagnostic log")
+    logger_text = logger_text.replace(log_call, file_log, 1)
+logger.write_text(logger_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
