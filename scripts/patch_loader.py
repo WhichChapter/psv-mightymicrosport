@@ -106,14 +106,14 @@ logger.write_text(logger_text, encoding="utf-8")
 fndk_utils = vendor / "lib" / "falso_ndk" / "FalsoNDK_Utils.h"
 fndk_text = fndk_utils.read_text(encoding="utf-8")
 if "#include <cerrno>" not in fndk_text:
-    fndk_text = fndk_text.replace("#pragma once", "#pragma once\\n#include <cerrno>", 1)
+    fndk_text = fndk_text.replace("#pragma once", "#pragma once\n#include <cerrno>", 1)
 fndk_utils.write_text(fndk_text, encoding="utf-8")
 
 # Add the Android Surface conversion functions missing from the upstream shim.
 dynlib = vendor / "source" / "dynlib.c"
 dynlib_text = dynlib.read_text(encoding="utf-8")
 if '#include "native_window.h"' not in dynlib_text:
-    dynlib_text = dynlib_text.replace('#include "reimpl/asset_manager.h"', '#include "reimpl/asset_manager.h"\\n#ifdef NDK_PORT\\n#include "native_window.h"\\n#endif', 1)
+    dynlib_text = dynlib_text.replace('#include "reimpl/asset_manager.h"', '#include "reimpl/asset_manager.h"\n#ifdef NDK_PORT\n#include "native_window.h"\n#endif', 1)
 window_anchor = '        {"ANativeWindow_getHeight", (uintptr_t)&ANativeWindow_getHeight},'
 window_add = '''        {"ANativeWindow_fromSurface", (uintptr_t)&ANativeWindow_fromSurface},
         {"ANativeWindow_acquire", (uintptr_t)&ANativeWindow_acquire},
@@ -130,15 +130,15 @@ egl_header = vendor / "source" / "reimpl" / "egl.h"
 egl_h = egl_header.read_text(encoding="utf-8")
 if "eglCreatePbufferSurface" not in egl_h:
     egl_h = egl_h.replace(
-        'EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win,\\n                                  const EGLint * attrib_list);',
-        'EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win,\\n                                  const EGLint * attrib_list);\\nEGLSurface eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);\\nEGLSurface eglGetCurrentSurface(EGLint readdraw);'
+        'EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win,\n                                  const EGLint * attrib_list);',
+        'EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win,\n                                  const EGLint * attrib_list);\nEGLSurface eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);\nEGLSurface eglGetCurrentSurface(EGLint readdraw);'
     )
 egl_header.write_text(egl_h, encoding="utf-8")
 
 egl_source = vendor / "source" / "reimpl" / "egl.c"
 egl_c = egl_source.read_text(encoding="utf-8")
 if "static EGLSurface current_surface" not in egl_c:
-    egl_c = egl_c.replace('#include <stdlib.h>', '#include <stdlib.h>\\n\\nstatic EGLContext current_context = NULL;\\nstatic EGLSurface current_surface = NULL;', 1)
+    egl_c = egl_c.replace('#include <stdlib.h>', '#include <stdlib.h>\n\nstatic EGLContext current_context = NULL;\nstatic EGLSurface current_surface = NULL;', 1)
 egl_c = egl_c.replace(
     '''EGLBoolean eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read,
                           EGLContext ctx) {
@@ -192,13 +192,13 @@ egl_source.write_text(egl_c, encoding="utf-8")
 if '"eglCreatePbufferSurface"' not in dynlib_text:
     dynlib_text = dynlib_text.replace(
         '        { "eglCreateContext", (uintptr_t)&eglCreateContext },',
-        '        { "eglCreateContext", (uintptr_t)&eglCreateContext },\\n        { "eglCreatePbufferSurface", (uintptr_t)&eglCreatePbufferSurface },', 1)
+        '        { "eglCreateContext", (uintptr_t)&eglCreateContext },\n        { "eglCreatePbufferSurface", (uintptr_t)&eglCreatePbufferSurface },', 1)
     dynlib_text = dynlib_text.replace(
         '        { "eglGetCurrentContext", (uintptr_t)&eglGetCurrentContext },',
-        '        { "eglGetCurrentContext", (uintptr_t)&eglGetCurrentContext },\\n        { "eglGetCurrentSurface", (uintptr_t)&eglGetCurrentSurface },', 1)
+        '        { "eglGetCurrentContext", (uintptr_t)&eglGetCurrentContext },\n        { "eglGetCurrentSurface", (uintptr_t)&eglGetCurrentSurface },', 1)
     dynlib_text = dynlib_text.replace(
         '        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },',
-        '        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },\\n        { "eglSwapInterval", (uintptr_t)&eglSwapInterval },', 1)
+        '        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },\n        { "eglSwapInterval", (uintptr_t)&eglSwapInterval },', 1)
 dynlib.write_text(dynlib_text, encoding="utf-8")
 
 init.write_text(text, encoding="utf-8")
