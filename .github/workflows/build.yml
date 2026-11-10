@@ -59,6 +59,7 @@ jobs:
           readelf -h package/game/lib/armeabi-v7a/*.so > reports/elf-headers.txt 2>&1 || true
           for so in package/game/lib/armeabi-v7a/*.so; do
             echo "===== $so =====" >> reports/exports.txt
+            readelf -d "$so" 2>/dev/null | grep NEEDED >> reports/exports.txt || true
             readelf -Ws "$so" 2>/dev/null | grep -E 'JNI_OnLoad|ANativeActivity_onCreate|Java_' >> reports/exports.txt || true
           done
           ENTRY_SO=""
@@ -93,6 +94,8 @@ jobs:
           set -euxo pipefail
           cd vendor/soloader
           ENTRY_SO="$(cat ../../reports/entry-so.txt)"
+          test -f lib/vitagl/source/vitaGL.h
+          sed -i 's#-Isource#-I$(CURDIR)/source#g' lib/vitagl/Makefile
           python3 ../../scripts/configure_template.py CMakeLists.txt "$ENTRY_SO"
           cp ../../source/main.c source/main.c
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
