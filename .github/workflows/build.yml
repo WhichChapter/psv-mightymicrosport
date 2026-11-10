@@ -100,6 +100,7 @@ jobs:
           cp ../../source/main.c source/main.c
           cp ../../source/multiso.h source/multiso.h
           cp ../../source/multiso.c source/multiso.c
+          cp ../../source/getentropy.c source/getentropy.c
           python3 ../../scripts/patch_loader.py
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
           cmake --build build --parallel 2
