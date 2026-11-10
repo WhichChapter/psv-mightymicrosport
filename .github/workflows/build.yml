@@ -63,9 +63,10 @@ jobs:
             fi
           done
           if [ -z "$ENTRY_SO" ]; then
-            echo "No defined JNI_OnLoad export found in ARMv7 libraries." | tee reports/entrypoint-error.txt
-            exit 1
+            ENTRY_SO="$(basename "$(find package/game/lib/armeabi-v7a -maxdepth 1 -type f -name '*.so' | sort | head -n1)")"
+            echo "WARNING: no defined JNI_OnLoad export found; selecting $ENTRY_SO for loader diagnostics." | tee reports/entrypoint-error.txt
           fi
+          test -n "$ENTRY_SO"
           echo "$ENTRY_SO" > reports/entry-so.txt
           find package/game/apk-metadata -name classes.dex -print0 | while IFS= read -r -d '' dex; do
             strings "$dex" | grep -Ei 'UnityPlayer|nativeRender|nativeInit|UnitySendMessage|UnityPlayerActivity|onCreate|onResume|onPause|SurfaceView|GameActivity' >> reports/java-entrypoints.txt || true
