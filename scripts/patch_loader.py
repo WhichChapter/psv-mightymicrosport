@@ -73,7 +73,7 @@ fjni_text = fjni.read_text(encoding="utf-8")
 if '#include "native_registry.h"' not in fjni_text:
     fjni_text = fjni_text.replace('#include "converter.h"', '#include "converter.h"\n#include "native_registry.h"', 1)
 import re
-pattern = r'jint RegisterNatives\\(JNIEnv\\* env, jclass clazz, const JNINativeMethod\\* methods, jint nMethods\\) \\{.*?\\n\\}'
+pattern = r'jint RegisterNatives\(JNIEnv\* env, jclass clazz, const JNINativeMethod\* methods, jint nMethods\) \{.*?\n\}'
 replacement = '''jint RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* methods, jint nMethods) {
     return mm_register_natives(env, clazz, methods, nMethods);
 }'''
