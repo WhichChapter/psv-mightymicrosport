@@ -15,7 +15,7 @@ int main(void) {
     l_info("Mighty Micros Vita loader starting");
     soloader_init_all();
 
-    void *entry = so_symbol(&so_mod, "JNI_OnLoad");
+    uintptr_t entry = so_symbol(&so_mod, "JNI_OnLoad");
     if (!entry) {
         l_error("JNI_OnLoad was not exported by the selected game library");
         sceKernelExitDeleteThread(0);
