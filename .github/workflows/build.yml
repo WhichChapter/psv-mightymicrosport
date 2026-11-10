@@ -111,7 +111,7 @@ jobs:
           cd vendor/soloader
           ENTRY_SO="$(cat ../../reports/entry-so.txt)"
           test -f lib/vitagl/source/vitaGL.h
-          sed -i 's#<vitaGL.h>#\\"../../vitaGL.h\\"#' lib/vitagl/source/utils/preprocessor/preprocessor.cpp
+          sed -i 's#<vitaGL.h>#"../../vitaGL.h"#' lib/vitagl/source/utils/preprocessor/preprocessor.cpp
           python3 ../../scripts/configure_template.py CMakeLists.txt "$ENTRY_SO"
           cp ../../source/main.c source/main.c
           cp ../../source/multiso.h source/multiso.h
