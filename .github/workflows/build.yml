@@ -115,9 +115,22 @@ jobs:
             convert ../../package/game/res/drawable-xhdpi-v4/app_banner.png -resize 960x540! -gravity center -background black -extent 960x544 extras/livearea/pic0.png
           fi
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DNDK_PORT=ON -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
+          cmake --build build --target so_loader --parallel 2
+          readelf -l build/so_loader | tee ../../reports/elf-segments.txt
           cmake --build build --parallel 2
           mkdir -p ../../out
           cp build/mighty_micros.vpk ../../out/
+
+      - name: Upload raw Vita ELF diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mighty-micros-raw-elf
+          path: |
+            vendor/soloader/build/so_loader
+            reports/elf-segments.txt
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Package user-supplied Android game data
         run: |
