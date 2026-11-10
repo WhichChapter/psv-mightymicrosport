@@ -67,8 +67,16 @@ jobs:
             exit 1
           fi
           echo "$ENTRY_SO" > reports/entry-so.txt
+          find package/game/apk-metadata -name classes.dex -print0 | while IFS= read -r -d '' dex; do
+            strings "$dex" | grep -Ei 'UnityPlayer|nativeRender|nativeInit|UnitySendMessage|UnityPlayerActivity|onCreate|onResume|onPause|SurfaceView|GameActivity' >> reports/java-entrypoints.txt || true
+          done
+          for so in package/game/lib/armeabi-v7a/*.so; do
+            strings "$so" | grep -Ei 'Unity version|UnityPlayer|nativeRender|nativeInit|ANativeActivity|JNI_OnLoad|OpenSLES|eglCreateContext' >> reports/unity-strings.txt || true
+          done
           cat reports/package.txt
           cat reports/exports.txt || true
+          cat reports/java-entrypoints.txt || true
+          cat reports/unity-strings.txt || true
 
       - name: Configure the upstream so-loader for Mighty Micros
         shell: bash
@@ -90,6 +98,9 @@ jobs:
           cd ../..
           cp reports/package.txt out/
           cp reports/exports.txt out/ || true
+          cp reports/java-entrypoints.txt out/ || true
+          cp reports/unity-strings.txt out/ || true
+          cp reports/entry-so.txt out/ || true
 
       - name: Upload VPK, game data and analysis
         uses: actions/upload-artifact@v4
