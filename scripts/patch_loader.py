@@ -122,6 +122,44 @@ fndk_utils.write_text(fndk_text, encoding="utf-8")
 # Add the Android Surface conversion functions missing from the upstream shim.
 dynlib = vendor / "source" / "dynlib.c"
 dynlib_text = dynlib.read_text(encoding="utf-8")
+if '#include "multiso.h"' not in dynlib_text:
+    dynlib_text = dynlib_text.replace(
+        '#include "utils/logger.h"',
+        '#include "utils/logger.h"\n#include "multiso.h"', 1)
+
+old_dlsym = """void *dlsym_soloader(void * handle, const char * symbol) {
+    for (int i = 0; i < sizeof(default_dynlib) / sizeof(default_dynlib[0]); i++) {
+        if (strcmp(symbol, default_dynlib[i].symbol) == 0) {
+            return &default_dynlib[i].func;
+        }
+    }
+
+    l_error("dlsym: Unknown symbol \\"%s\\".", symbol);
+    return NULL;
+}"""
+new_dlsym = """void *dlsym_soloader(void * handle, const char * symbol) {
+    (void)handle;
+
+    /* Resolve exports from libmain.so, libunity.so and libil2cpp.so first.
+       Unity's libil2cpp API is loaded dynamically and is not in DT_NEEDED. */
+    uintptr_t loaded_symbol = mm_find_loaded_symbol(symbol);
+    if (loaded_symbol) return (void *)loaded_symbol;
+
+    /* POSIX dlsym returns the symbol address, not the address of the table slot. */
+    for (int i = 0; i < sizeof(default_dynlib) / sizeof(default_dynlib[0]); i++) {
+        if (strcmp(symbol, default_dynlib[i].symbol) == 0) {
+            return (void *)default_dynlib[i].func;
+        }
+    }
+
+    l_error("dlsym: Unknown symbol \\"%s\\".", symbol);
+    return NULL;
+}"""
+if "mm_find_loaded_symbol(symbol)" not in dynlib_text:
+    if old_dlsym not in dynlib_text:
+        raise SystemExit("Could not locate upstream dlsym_soloader implementation")
+    dynlib_text = dynlib_text.replace(old_dlsym, new_dlsym, 1)
+
 if '#include "native_window.h"' not in dynlib_text:
     dynlib_text = dynlib_text.replace('#include "reimpl/asset_manager.h"', '#include "reimpl/asset_manager.h"\n#ifdef NDK_PORT\n#include "native_window.h"\n#endif', 1)
 window_anchor = '        {"ANativeWindow_getHeight", (uintptr_t)&ANativeWindow_getHeight},'
