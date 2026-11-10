@@ -58,8 +58,8 @@ text = text.replace('''    so_flush_caches(&so_mod);
     so_flush_caches(&so_mod);
     l_success("Android shared-object caches flushed.");
 
-    mm_initialize_dependencies();
     so_initialize(&so_mod);
+    mm_initialize_dependencies();
     l_success("Android shared objects initialized.");''',1)
 
 if "mm_load_dependencies()" not in text or "mm_initialize_dependencies()" not in text:
