@@ -24,8 +24,9 @@ if "source/egl_extra.c" not in text:
 if "max-page-size=0x200000" not in text:
     text = text.replace(anchor, anchor + '''
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
-    "-Wl,-z,max-page-size=0x200000"
-    "-Wl,-z,common-page-size=0x200000"
+    "-Wl,-z,max-page-size=0x10000"
+    "-Wl,-z,common-page-size=0x10000"
+    "-Wl,--section-start=.init_array=0x81400000"
 )
 ''', 1)
 cmake.write_text(text, encoding="utf-8")
