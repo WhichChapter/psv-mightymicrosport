@@ -75,6 +75,23 @@ jobs:
             echo "WARNING: no defined JNI_OnLoad export found; selecting $ENTRY_SO for loader diagnostics." | tee reports/entrypoint-error.txt
           fi
           test -n "$ENTRY_SO"
+
+          # Unity resolves IL2CPP through dlopen/dlsym at runtime. Fail early
+          # if this APK does not export the core IL2CPP API expected by Unity.
+          IL2CPP_SO=package/game/lib/armeabi-v7a/libil2cpp.so
+          for symbol in il2cpp_init il2cpp_domain_get il2cpp_class_from_name il2cpp_runtime_invoke; do
+            if ! readelf -Ws "$IL2CPP_SO" | awk -v wanted="$symbol" '$7 != "UND" && $8 == wanted { found=1 } END { exit !found }'; then
+              echo "Required IL2CPP export is missing: $symbol"
+              exit 1
+            fi
+            echo "Verified IL2CPP export: $symbol"
+          done
+          for so in package/game/lib/armeabi-v7a/libmain.so package/game/lib/armeabi-v7a/libunity.so; do
+            readelf -Ws "$so" | awk '$7 != "UND" && $8 == "JNI_OnLoad" { found=1 } END { exit !found }' || {
+              echo "Required JNI_OnLoad export is missing: $so"
+              exit 1
+            }
+          done
           echo "$ENTRY_SO" > reports/entry-so.txt
           if [ -d package/game/apk-metadata ]; then
             find package/game/apk-metadata -name classes.dex -print0 | while IFS= read -r -d '' dex; do
