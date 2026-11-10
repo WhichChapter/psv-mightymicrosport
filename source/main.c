@@ -187,6 +187,6 @@ int main(void) {
     sceKernelWaitThreadEnd(thread, &thread_status, NULL);
     l_info("UnityMain exited with status %d", thread_status);
     sceKernelDeleteThread(thread);
-    sceKernelExitProcess(0);
+    sceKernelExitDeleteThread(0);
     return 0;
 }
