@@ -31,7 +31,9 @@ A separate `mighty-micros-raw-elf` artifact contains the pre-SELF ELF and progra
 - Loads `libunity.so` and `libil2cpp.so` as dependencies, then loads `libmain.so`; assigns SONAMEs and resolves relocations across the modules.
 - Captures Unity JNI `RegisterNatives` calls, including native method names, signatures and function addresses.
 - Calls the JNI entry points from `libmain.so` and `libunity.so`.
-- Attempts UnityPlayer startup: `initJni`, WWW/WebRequest registration, graphics-state recreation, resume/focus and repeated `nativeRender` calls.
+- Attempts UnityPlayer startup in Android order: `libmain` JNI setup, Unity JNI setup, `initJni`, WWW/WebRequest registration, then graphics-state recreation, resume/focus and repeated `nativeRender` calls.
+- Runs the graphics lifecycle and frame pump on a dedicated `UnityMain` Vita thread, rather than incorrectly driving Unity's render loop from the launcher thread.
+- Writes FalsoJNI lookup warnings/errors to `ux0:data/mightymicros.log` as well as the console.
 - Adds Android Surface-to-Vita-window and EGL compatibility shims.
 - Uses the Android app icon and banner in the Vita LiveArea.
 - Writes runtime diagnostics to `ux0:data/mightymicros.log`.
@@ -43,7 +45,7 @@ A successful VPK build proves that the loader compiles and packages; it does **n
 
 The current JNI startup still uses placeholder Android `Context` and `Surface` objects. The EGL pbuffer function is currently an unsupported fallback. Java method/field behaviour, graphics, input, audio, assets and performance still need hardware testing and game-specific compatibility work.
 
-The next milestone is to install the VPK with its data archive on a Vita, inspect `ux0:data/mightymicros.log`, and fix the first runtime failure.
+The next milestone is to install the VPK with its data archive on a Vita, inspect `ux0:data/mightymicros.log`, and fix the first runtime failure. The dedicated UnityMain thread is a lifecycle correction based on UnityPlayer's Android startup model; it is not yet hardware-verified.
 
 ## Test installation
 
