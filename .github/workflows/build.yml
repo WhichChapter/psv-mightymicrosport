@@ -25,10 +25,11 @@ jobs:
         run: |
           set -euxo pipefail
           curl -fsSL https://github.com/vitasdk/vdpm/releases/latest/download/bootstrap-vitasdk.sh -o /tmp/bootstrap-vitasdk.sh
+          export VITASDK="$HOME/vitasdk"
           VITASDK_CHANNEL=nightly-softfp bash /tmp/bootstrap-vitasdk.sh
-          echo "VITASDK=$HOME/vitasdk" >> "$GITHUB_ENV"
-          echo "$HOME/vitasdk/bin" >> "$GITHUB_PATH"
-          "$HOME/vitasdk/bin/arm-vita-eabi-gcc" --version
+          echo "VITASDK=$VITASDK" >> "$GITHUB_ENV"
+          echo "$VITASDK/bin" >> "$GITHUB_PATH"
+          "$VITASDK/bin/arm-vita-eabi-gcc" --version
 
       - name: Fetch real Android-to-Vita loader framework
         run: |
@@ -73,9 +74,9 @@ jobs:
 
       - name: Package user-supplied Android game data
         run: |
-          cd package
-          zip -qr ../out/mighty-micros-data.zip game
-          cd ..
+          cd package/game
+          zip -qr ../../out/mighty-micros-data.zip .
+          cd ../..
           cp reports/package.txt out/
           cp reports/exports.txt out/ || true
 
