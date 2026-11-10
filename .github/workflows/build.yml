@@ -61,6 +61,7 @@ jobs:
             echo "===== $so =====" >> reports/exports.txt
             readelf -d "$so" 2>/dev/null | grep NEEDED >> reports/exports.txt || true
             readelf -Ws "$so" 2>/dev/null | grep -E 'JNI_OnLoad|ANativeActivity_onCreate|Java_' >> reports/exports.txt || true
+            readelf -Ws "$so" 2>/dev/null | awk '$7 == "UND" {print $8}' | sort -u >> reports/imports.txt || true
           done
           ENTRY_SO=""
           for so in package/game/lib/armeabi-v7a/*.so; do
@@ -122,6 +123,7 @@ jobs:
           cd ../..
           cp reports/package.txt out/
           cp reports/exports.txt out/ || true
+          cp reports/imports.txt out/ || true
           cp reports/java-entrypoints.txt out/ || true
           cp reports/unity-strings.txt out/ || true
           cp reports/entry-so.txt out/ || true
