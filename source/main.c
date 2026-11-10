@@ -26,7 +26,6 @@ static unity_surface_method native_recreate_gfx_state;
 static unity_void_method native_resume;
 static unity_void_method native_done;
 static unity_focus_method native_focus_changed;
-static unity_void_method native_pause_void;
 static unity_render_method native_render;
 static jboolean (*native_pause)(JNIEnv *, jobject);
 
@@ -141,7 +140,7 @@ int main(void) {
 
     uintptr_t init_www = unity_method("nativeInitWWW", "(Ljava/lang/Class;)V");
     if (init_www) {
-        jclass www_class = (*(&jni))->FindClass(&jni, "com/unity3d/player/WWW");
+        jclass www_class = jni->FindClass(&jni, "com/unity3d/player/WWW");
         ((void (*)(JNIEnv *, jobject, jclass))init_www)(&jni, unity_player, www_class);
         l_info("UnityPlayer.nativeInitWWW completed");
     }
