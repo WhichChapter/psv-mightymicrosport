@@ -15,7 +15,7 @@ if "source/multiso.c" not in text:
 if "source/getentropy.c" not in text:
     text = text.replace(needle, needle + "    source/getentropy.c\n", 1)
 if "source/native_registry.c" not in text:
-    text = text.replace(needle, needle + "    source/native_registry.c\\n", 1)
+    text = text.replace(needle, needle + "    source/native_registry.c\n", 1)
 cmake.write_text(text, encoding="utf-8")
 
 text = init.read_text(encoding="utf-8")
@@ -71,7 +71,7 @@ if "mm_load_dependencies()" not in text or "mm_initialize_dependencies()" not in
 fjni = vendor / "lib" / "falso_jni" / "FalsoJNI.c"
 fjni_text = fjni.read_text(encoding="utf-8")
 if '#include "native_registry.h"' not in fjni_text:
-    fjni_text = fjni_text.replace('#include "converter.h"', '#include "converter.h"\\n#include "native_registry.h"', 1)
+    fjni_text = fjni_text.replace('#include "converter.h"', '#include "converter.h"\n#include "native_registry.h"', 1)
 import re
 pattern = r'jint RegisterNatives\\(JNIEnv\\* env, jclass clazz, const JNINativeMethod\\* methods, jint nMethods\\) \\{.*?\\n\\}'
 replacement = '''jint RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* methods, jint nMethods) {
