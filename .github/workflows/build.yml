@@ -35,9 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          for package in opensles libsndfile lame mpg123 libvorbis libogg flac opus zlib kubridge taihen libmathneon SceShaccCgExt vitaShaRK; do
-            "$VITASDK/bin/vdpm" install "$package"
-          done
+          printf 'y\n' | "$VITASDK/bin/vdpm" install opensles kubridge taihen libmathneon SceShaccCgExt vitaShaRK
 
       - name: Fetch real Android-to-Vita loader framework
         run: |
