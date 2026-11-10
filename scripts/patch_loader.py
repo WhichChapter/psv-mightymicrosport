@@ -85,7 +85,7 @@ fjni.write_text(fjni_text, encoding="utf-8")
 logger = vendor / "source" / "utils" / "logger.c"
 logger_text = logger.read_text(encoding="utf-8")
 if "#include <psp2/io/fcntl.h>" not in logger_text:
-    logger_text = logger_text.replace("#include <stdatomic.h>", "#include <stdatomic.h>\\n#include <string.h>\\n#include <psp2/io/fcntl.h>", 1)
+    logger_text = logger_text.replace("#include <stdatomic.h>", "#include <stdatomic.h>\n#include <string.h>\n#include <psp2/io/fcntl.h>", 1)
 log_call = "    sceClibPrintf(buffer_b);"
 file_log = """    sceClibPrintf(buffer_b);
     SceUID log_fd = sceIoOpen("ux0:data/mightymicros.log", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777);
