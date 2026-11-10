@@ -4,7 +4,6 @@
 #include "multiso.h"
 #include "native_registry.h"
 #include <psp2/kernel/threadmgr.h>
-#include <psp2/kernel/processmgr.h>
 #include <psp2/ctrl.h>
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
@@ -15,8 +14,8 @@ int _newlib_heap_size_user = 256 * 1024 * 1024;
 int sceLibcHeapSize = 4 * 1024 * 1024;
 so_module so_mod;
 
-static void *mm_method(const char *name, const char *signature) {
-    return (void *)mm_find_native_method("com/unity3d/player/UnityPlayer", name, signature);
+static uintptr_t mm_method(const char *name, const char *signature) {
+    return mm_find_native_method("com/unity3d/player/UnityPlayer", name, signature);
 }
 
 int main(void) {
@@ -101,8 +100,7 @@ int main(void) {
 
     uintptr_t pause = mm_method("nativePause", "()Z");
     if (pause) ((jboolean (*)(JNIEnv *, jobject))pause)(env, player);
-    vglExit();
-    sceKernelExitProcess(0);
+    sceKernelExitDeleteThread(0);
     return 0;
 }
 
