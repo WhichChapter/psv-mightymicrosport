@@ -11,5 +11,6 @@ void mm_resolve_dependencies(void);
 void mm_flush_dependencies(void);
 void mm_initialize_dependencies(void);
 so_module *mm_unity_module(void);
+uintptr_t mm_find_loaded_symbol(const char *symbol);
 
 #endif
