@@ -13,7 +13,7 @@ if "source/multiso.c" not in text:
         raise SystemExit("Could not find source list insertion point in upstream CMakeLists.txt")
     text = text.replace(needle, needle + "    source/multiso.c\n", 1)
 if "source/getentropy.c" not in text:
-    text = text.replace(needle, needle + "    source/getentropy.c\\n", 1)
+    text = text.replace(needle, needle + "    source/getentropy.c\n", 1)
 cmake.write_text(text, encoding="utf-8")
 
 text = init.read_text(encoding="utf-8")
