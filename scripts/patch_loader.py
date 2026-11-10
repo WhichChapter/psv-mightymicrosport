@@ -21,11 +21,11 @@ if anchor in text and 'list(APPEND SOURCES source/native_window.c)' not in text:
     text = text.replace(anchor, 'if (NDK_PORT)\n  list(APPEND SOURCES source/native_window.c)\nendif()\n\n' + anchor, 1)
 if "source/egl_extra.c" not in text:
     text = text.replace(anchor, "list(APPEND SOURCES source/egl_extra.c)\n" + anchor, 1)
-if "max-page-size=0x10000" not in text:
+if "max-page-size=0x200000" not in text:
     text = text.replace(anchor, anchor + '''
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
-    "-Wl,-z,max-page-size=0x10000"
-    "-Wl,-z,common-page-size=0x10000"
+    "-Wl,-z,max-page-size=0x200000"
+    "-Wl,-z,common-page-size=0x200000"
 )
 ''', 1)
 cmake.write_text(text, encoding="utf-8")
