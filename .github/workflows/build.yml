@@ -33,7 +33,9 @@ jobs:
 
       - name: Fetch real Android-to-Vita loader framework
         run: |
-          git clone --recurse-submodules --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
+          git clone --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
+          sed -i 's#git@github.com:#https://github.com/#g' vendor/soloader/.gitmodules
+          git -C vendor/soloader submodule update --init --recursive --depth 1
           test -f vendor/soloader/source/main.c
           test -f vendor/soloader/lib/so_util/so_util.c
           test -f vendor/soloader/lib/falso_jni/FalsoJNI.c
@@ -53,6 +55,18 @@ jobs:
             echo "===== $so =====" >> reports/exports.txt
             readelf -Ws "$so" 2>/dev/null | grep -E 'JNI_OnLoad|ANativeActivity_onCreate|Java_' >> reports/exports.txt || true
           done
+          ENTRY_SO=""
+          for so in package/game/lib/armeabi-v7a/*.so; do
+            if readelf -Ws "$so" 2>/dev/null | awk '$7 != "UND" && $8 == "JNI_OnLoad" { found=1 } END { exit !found }'; then
+              ENTRY_SO="$(basename "$so")"
+              break
+            fi
+          done
+          if [ -z "$ENTRY_SO" ]; then
+            echo "No defined JNI_OnLoad export found in ARMv7 libraries." | tee reports/entrypoint-error.txt
+            exit 1
+          fi
+          echo "$ENTRY_SO" > reports/entry-so.txt
           cat reports/package.txt
           cat reports/exports.txt || true
 
@@ -61,11 +75,8 @@ jobs:
         run: |
           set -euxo pipefail
           cd vendor/soloader
-          sed -i 's/set(VITA_APP_NAME "so-loader")/set(VITA_APP_NAME "LEGO DC Mighty Micros")/' CMakeLists.txt
-          sed -i 's/set(VITA_TITLEID "SLDR00000")/set(VITA_TITLEID "MTHM00001")/' CMakeLists.txt
-          sed -i 's/set(VITA_VPKNAME "so_loader")/set(VITA_VPKNAME "mighty_micros")/' CMakeLists.txt
-          sed -i 's#set(DATA_PATH "ux0:data/gamename/")#set(DATA_PATH "ux0:data/mightymicros/")#' CMakeLists.txt
-          sed -i 's#set(SO_PATH "${DATA_PATH}main.so")#set(SO_PATH "${DATA_PATH}lib/armeabi-v7a/libmain.so")#' CMakeLists.txt
+          ENTRY_SO="$(cat ../../reports/entry-so.txt)"
+          python3 ../../scripts/configure_template.py CMakeLists.txt "$ENTRY_SO"
           cp ../../source/main.c source/main.c
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
           cmake --build build --parallel 2
