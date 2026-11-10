@@ -1,32 +1,53 @@
 # LEGO DC Mighty Micros — PS Vita (GPT branch)
 
-This branch is a clean rebuild of the earlier experimental project.
+This branch is the active Android-to-Vita port attempt. The original branch is left untouched.
 
-## What the workflow does
+## Current target
 
-1. Installs VitaSDK and vitaGL on GitHub Actions.
-2. Downloads the Android 1.7.1418 ZIP supplied for this build.
-3. Extracts the APK contents and verifies the ARMv7 Unity/IL2CPP libraries.
-4. Packages the extracted Android files into the VPK under the app's data directory.
-5. Builds a VPK artifact named `mighty-micros-GPT-vpk`.
+- Android package: LEGO DC Mighty Micros 1.7.1418
+- Unity engine: 2017.2.1f1
+- ABI: ARMv7 / armeabi-v7a
+- Native libraries: `libmain.so`, `libunity.so`, and `libil2cpp.so`
+- Vita title ID: `MTHM00001`
 
-The commercial Android files are downloaded during the workflow and are **not committed to this repository**. The VPK artifact is retained for one day.
+## What CI builds
 
-## Important status: not yet playable
+The GitHub Actions workflow downloads the supplied APK-content ZIP, extracts its assets and ARMv7 libraries, inspects the ELF dependencies and Java entry points, and builds the Vita loader using VitaSDK-softfp.
 
-The current VPK is a payload-packaging and diagnostic milestone, **not a working port**. It verifies that the expected Android libraries are installed and provides a minimal Vita application. It does not execute Unity, IL2CPP, or Android JNI.
+Each successful run uploads the artifact `mighty-micros-port-build` (7-day retention), containing:
 
-The previous launcher called a nonexistent `kuBridgeLoadComponent()` function. kubridge does not provide a generic Android Unity/JNI runtime, so loading `libunity.so`, `libil2cpp.so`, and `libmain.so` as if they were ordinary Vita modules would not start this game.
+- `mighty_micros.vpk` — the Vita application.
+- `mighty-micros-data.zip` — Android assets, ARMv7 libraries and APK metadata.
+- `package.txt`, `exports.txt`, `java-entrypoints.txt`, `unity-strings.txt` — inspection reports.
 
-A real port still needs a compatible ARM shared-object loader, Android/JNI compatibility layer, Unity platform glue, graphics translation, input/audio/filesystem replacements, and memory/performance work. This is a substantial reverse-engineering project; a successful VPK build alone does not prove the game runs.
+The Android game files are not committed to this repository.
 
-## Install the diagnostic package
+## Port work implemented
 
-1. Download the VPK from the GitHub Actions artifact.
-2. Transfer it to the Vita and install it with VitaShell.
-3. Launch **LEGO DC Mighty Micros**. The screen colour indicates whether the three expected ARMv7 libraries were found.
-4. Press START to exit.
+- Integrates TheFloW's `so_util` Android ARM shared-object loader framework and FalsoJNI.
+- Loads `libunity.so` and `libil2cpp.so` as dependencies, then loads `libmain.so`; assigns SONAMEs and resolves relocations across the loaded modules.
+- Hooks FalsoJNI `RegisterNatives` so Unity's registered JNI function pointers and signatures are captured.
+- Calls the JNI entry points from `libmain.so` and `libunity.so`.
+- Attempts the UnityPlayer startup sequence: `initJni`, WWW/WebRequest registration, graphics-state recreation, resume/focus, and repeated `nativeRender` calls.
+- Uses the original Android app icon and banner in the Vita LiveArea.
+- Writes runtime diagnostics to `ux0:data/mightymicros.log`.
+
+## Important status: experimental, not confirmed playable
+
+A successful VPK build only proves that the Vita application compiles. The game has **not yet been confirmed running on Vita hardware**.
+
+The current JNI startup still uses placeholder Android `Context` and `Surface` objects. Unity may therefore stop during initialization or graphics setup. FalsoJNI also needs game-specific Java method/field implementations, and Android input, audio, asset and EGL behaviour still need verification and fixes.
+
+The next milestone is to run the VPK on hardware, inspect `ux0:data/mightymicros.log`, then implement the exact missing Java/Android calls and Unity surface lifecycle reported by the game.
+
+## Test installation
+
+1. Download both `mighty_micros.vpk` and `mighty-micros-data.zip` from a successful GitHub Actions artifact.
+2. Extract the **contents** of `mighty-micros-data.zip` into `ux0:data/mightymicros/`. The resulting paths must include `ux0:data/mightymicros/assets/` and `ux0:data/mightymicros/lib/armeabi-v7a/`.
+3. Ensure the Vita's kubridge kernel plugin is installed and loaded.
+4. Install `mighty_micros.vpk` with VitaShell and launch **LEGO DC Mighty Micros**.
+5. If it fails or displays a black screen, retrieve `ux0:data/mightymicros.log` from the Vita and use it to guide the next compatibility fixes.
 
 ## Build
 
-Push to `GPT` or run **Build Mighty Micros Vita package** manually from Actions.
+Push to branch `GPT` or manually run **Mighty Micros Android-to-Vita port** in GitHub Actions.
