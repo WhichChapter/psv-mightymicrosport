@@ -111,7 +111,7 @@ jobs:
           cd vendor/soloader
           ENTRY_SO="$(cat ../../reports/entry-so.txt)"
           test -f lib/vitagl/source/vitaGL.h
-          sed -i 's#<vitaGL.h>#\"../../vitaGL.h\"#' lib/vitagl/source/utils/preprocessor/preprocessor.cpp
+          sed -i 's#<vitaGL.h>#\\"../../vitaGL.h\\"#' lib/vitagl/source/utils/preprocessor/preprocessor.cpp
           python3 ../../scripts/configure_template.py CMakeLists.txt "$ENTRY_SO"
           cp ../../source/main.c source/main.c
           cp ../../source/multiso.h source/multiso.h
@@ -130,11 +130,7 @@ jobs:
             convert ../../package/game/res/drawable-xhdpi-v4/app_banner.png -resize 960x540! -gravity center -background black -extent 960x544 extras/livearea/pic0.png
           fi
 
-          # VitaShell rejects VPKs whose sce_sys LiveArea PNGs are not
-          # quantized to an 8-bit indexed palette. This was the cause of
-          # error 0x8010113D (the previous icon0 was RGBA and pic0 was RGB).
-          # The generated icon and banner are the two RGB/RGBA images.
-          # The upstream template already supplies indexed bg0/startup images.
+          # Quantize generated LiveArea images for VitaShell compatibility.
           for img in extras/livearea/icon0.png extras/livearea/pic0.png; do
             test -f "$img"
             tmp="${img}.quantized.png"
@@ -151,7 +147,7 @@ jobs:
           }
           for name, dimensions in expected.items():
               data = Path(name).read_bytes()
-              if data[:8] != b"\x89PNG\r\n\x1a\n":
+              if data[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
                   raise SystemExit(f"{name}: invalid PNG")
               width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
               if (width, height) != dimensions or depth != 8 or color != 3 or interlace != 0:
@@ -177,11 +173,83 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
-      - name: Package user-supplied Android game data
+      - name: Package game data into small VitaShell-friendly parts
+        shell: bash
         run: |
-          cd package/game
-          zip -qr ../../out/mighty-micros-data.zip .
-          cd ../..
+          set -euxo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
+
+          root = Path("package/game")
+          output = Path("out")
+          parts_dir = Path("out/data-parts")
+          parts_dir.mkdir(parents=True, exist_ok=True)
+
+          files = sorted(p for p in root.rglob("*") if p.is_file())
+          if not files:
+              raise SystemExit("No game data files were extracted")
+
+          # Keep each inner ZIP modest: at most 200 files or 96 MiB
+          # uncompressed, whichever comes first. Paths stay relative to
+          # package/game so extracting every part into the same folder merges
+          # them into the original assets/, lib/, etc. layout.
+          batches = []
+          batch = []
+          batch_bytes = 0
+          for path in files:
+              size = path.stat().st_size
+              if batch and (len(batch) >= 200 or batch_bytes + size > 96 * 1024 * 1024):
+                  batches.append(batch)
+                  batch = []
+                  batch_bytes = 0
+              batch.append(path)
+              batch_bytes += size
+          if batch:
+              batches.append(batch)
+
+          part_names = []
+          for index, batch in enumerate(batches, 1):
+              name = f"mighty-micros-data-{index:03d}.zip"
+              part_path = parts_dir / name
+              with ZipFile(part_path, "w", compression=ZIP_DEFLATED, compresslevel=6, allowZip64=True) as archive:
+                  for path in batch:
+                      archive.write(path, path.relative_to(root).as_posix())
+              part_names.append(name)
+              print(f"Created {name}: {len(batch)} files, {sum(p.stat().st_size for p in batch):,} uncompressed bytes")
+
+          # The outer ZIP contains only the smaller ZIP parts. Extracting it
+          # on Vita creates a small number of files, not thousands of assets.
+          outer = output / "mighty-micros-data.zip"
+          with ZipFile(outer, "w", compression=ZIP_STORED, allowZip64=True) as archive:
+              for name in part_names:
+                  archive.write(parts_dir / name, f"parts/{name}")
+              archive.writestr("README-FIRST.txt",
+                  "MIGHTY MICROS DATA INSTALL\\n\\n"
+                  "1. Extract this ZIP to ux0:data/mightymicros-parts/\\n"
+                  "2. Open each ZIP inside parts/ and extract its contents into ux0:data/mightymicros/\\n"
+                  "3. Repeat for every numbered part. The numbered ZIPs can be extracted in any order.\\n"
+                  "4. Do not rename the assets or lib folders.\\n")
+          print(f"Created {outer}: {len(part_names)} inner ZIP parts, {outer.stat().st_size:,} bytes")
+
+          # Validate every inner archive and ensure no file is omitted/duplicated.
+          seen = []
+          for name in part_names:
+              with ZipFile(parts_dir / name) as archive:
+                  bad = archive.testzip()
+                  if bad:
+                      raise SystemExit(f"Corrupt inner ZIP {name}: {bad}")
+                  seen.extend(archive.namelist())
+          expected = [p.relative_to(root).as_posix() for p in files]
+          if sorted(seen) != sorted(expected):
+              raise SystemExit("Split data validation failed: file list differs from source")
+          with ZipFile(outer) as archive:
+              bad = archive.testzip()
+              if bad:
+                  raise SystemExit(f"Corrupt outer ZIP: {bad}")
+          print(f"Validated all {len(files)} source files across {len(part_names)} parts")
+          PY
           cp reports/package.txt out/
           cp reports/exports.txt out/ || true
           cp reports/imports.txt out/ || true
@@ -189,7 +257,7 @@ jobs:
           cp reports/unity-strings.txt out/ || true
           cp reports/entry-so.txt out/ || true
 
-      - name: Upload VPK, game data and analysis
+      - name: Upload VPK, split game data and analysis
         uses: actions/upload-artifact@v4
         with:
           name: mighty-micros-port-build
