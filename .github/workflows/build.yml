@@ -1,4 +1,4 @@
-name: Build Mighty Micros Vita package
+name: Mighty Micros Android-to-Vita port
 
 on:
   push:
@@ -12,62 +12,77 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout GPT branch
+      - name: Checkout port project
         uses: actions/checkout@v4
 
-      - name: Install build tools
+      - name: Install host tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git wget curl unzip python3
+          sudo apt-get install -y build-essential cmake git curl unzip zip python3 binutils file
 
-      - name: Set up VitaSDK
+      - name: Install VitaSDK nightly-softfp
         shell: bash
         run: |
-          SDK_URL="$(wget -qO- https://github.com/vitasdk/vita-headers/raw/master/.travis.d/last_built_toolchain.py | python3 - master linux)"
-          test -n "$SDK_URL"
-          mkdir -p "$GITHUB_WORKSPACE/vitasdk"
-          wget -qO- "$SDK_URL" | tar xj -C "$GITHUB_WORKSPACE/vitasdk" --strip-components=1
-          echo "VITASDK=$GITHUB_WORKSPACE/vitasdk" >> "$GITHUB_ENV"
-          echo "$GITHUB_WORKSPACE/vitasdk/bin" >> "$GITHUB_PATH"
+          set -euxo pipefail
+          curl -fsSL https://github.com/vitasdk/vdpm/releases/latest/download/bootstrap-vitasdk.sh -o /tmp/bootstrap-vitasdk.sh
+          VITASDK_CHANNEL=nightly-softfp bash /tmp/bootstrap-vitasdk.sh
+          echo "VITASDK=$HOME/vitasdk" >> "$GITHUB_ENV"
+          echo "$HOME/vitasdk/bin" >> "$GITHUB_PATH"
+          "$HOME/vitasdk/bin/arm-vita-eabi-gcc" --version
 
-      - name: Build and install vitaGL
+      - name: Fetch real Android-to-Vita loader framework
         run: |
-          git clone --depth 1 https://github.com/Rinnegatamante/vitaGL.git
-          make -C vitaGL -j2
-          make -C vitaGL install
+          git clone --recurse-submodules --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
+          test -f vendor/soloader/source/main.c
+          test -f vendor/soloader/lib/so_util/so_util.c
+          test -f vendor/soloader/lib/falso_jni/FalsoJNI.c
 
-      - name: Download and inspect supplied Android ZIP
+      - name: Download and unpack Mighty Micros Android package
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           URL='https://filebin.net/yevzs03g58uchgff/com.lego.superheroes.dccomicsmightymicros_1.7.1418-1418_minAPI16%28armeabi-v7a,x86%29%28nodpi%29_apkmirror.com.zip'
-          mkdir -p incoming extracted data/mightymicros
+          mkdir -p incoming package/game/assets package/game/lib/armeabi-v7a reports
           curl --fail --location --retry 3 --retry-all-errors "$URL" -o incoming/mightymicros.zip
-          unzip -q incoming/mightymicros.zip -d extracted
-          ROOT="$(find extracted -type f -path '*/lib/armeabi-v7a/libunity.so' -printf '%h/../..\n' | head -n1)"
-          if [ -z "$ROOT" ]; then
-            echo "Could not find lib/armeabi-v7a/libunity.so in the supplied ZIP."
-            echo "Archive listing:"
-            unzip -l incoming/mightymicros.zip | head -100
-            exit 1
-          fi
-          ROOT="$(realpath "$ROOT")"
-          cp -a "$ROOT"/. data/mightymicros/
-          test -s data/mightymicros/lib/armeabi-v7a/libunity.so
-          test -s data/mightymicros/lib/armeabi-v7a/libil2cpp.so
-          test -s data/mightymicros/lib/armeabi-v7a/libmain.so
-          echo "Verified Android ARMv7 Unity/IL2CPP libraries."
-          du -sh data/mightymicros
+          python3 scripts/extract_apkmirror_zip.py incoming/mightymicros.zip package/game reports/package.txt
+          find package/game -type f -name '*.so' -print
+          test -n "$(find package/game -type f -name '*.so' -print -quit)"
+          readelf -h package/game/lib/armeabi-v7a/*.so > reports/elf-headers.txt 2>&1 || true
+          for so in package/game/lib/armeabi-v7a/*.so; do
+            echo "===== $so =====" >> reports/exports.txt
+            readelf -Ws "$so" 2>/dev/null | grep -E 'JNI_OnLoad|ANativeActivity_onCreate|Java_' >> reports/exports.txt || true
+          done
+          cat reports/package.txt
+          cat reports/exports.txt || true
 
-      - name: Configure and compile VPK
+      - name: Configure the upstream so-loader for Mighty Micros
+        shell: bash
         run: |
-          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
+          set -euxo pipefail
+          cd vendor/soloader
+          sed -i 's/set(VITA_APP_NAME "so-loader")/set(VITA_APP_NAME "LEGO DC Mighty Micros")/' CMakeLists.txt
+          sed -i 's/set(VITA_TITLEID "SLDR00000")/set(VITA_TITLEID "MTHM00001")/' CMakeLists.txt
+          sed -i 's/set(VITA_VPKNAME "so_loader")/set(VITA_VPKNAME "mighty_micros")/' CMakeLists.txt
+          sed -i 's#set(DATA_PATH "ux0:data/gamename/")#set(DATA_PATH "ux0:data/mightymicros/")#' CMakeLists.txt
+          sed -i 's#set(SO_PATH "${DATA_PATH}main.so")#set(SO_PATH "${DATA_PATH}lib/armeabi-v7a/libmain.so")#' CMakeLists.txt
+          cp ../../source/main.c source/main.c
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
           cmake --build build --parallel 2
+          mkdir -p ../../out
+          cp build/mighty_micros.vpk ../../out/
 
-      - name: Upload VPK
+      - name: Package user-supplied Android game data
+        run: |
+          cd package
+          zip -qr ../out/mighty-micros-data.zip game
+          cd ..
+          cp reports/package.txt out/
+          cp reports/exports.txt out/ || true
+
+      - name: Upload VPK, game data and analysis
         uses: actions/upload-artifact@v4
         with:
-          name: mighty-micros-GPT-vpk
-          path: build/*.vpk
+          name: mighty-micros-port-build
+          path: out/*
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
