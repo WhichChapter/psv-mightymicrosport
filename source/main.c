@@ -7,7 +7,6 @@
 #include <psp2/ctrl.h>
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
-#include "reimpl/controls.h"
 #include <stdio.h>
 
 int _newlib_heap_size_user = 256 * 1024 * 1024;
@@ -91,7 +90,6 @@ int main(void) {
 
     l_info("Entering Unity nativeRender loop");
     for (;;) {
-        controls_poll();
         render(env, player);
 
         SceCtrlData pad;
@@ -106,12 +104,3 @@ int main(void) {
     return 0;
 }
 
-void controls_handler_key(int32_t keycode, ControlsAction action) {
-    (void)keycode; (void)action;
-}
-void controls_handler_touch(int32_t id, float x, float y, ControlsAction action) {
-    (void)id; (void)x; (void)y; (void)action;
-}
-void controls_handler_analog(ControlsStickId which, float x, float y, ControlsAction action) {
-    (void)which; (void)x; (void)y; (void)action;
-}
