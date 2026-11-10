@@ -211,5 +211,27 @@ if '"eglCreatePbufferSurface"' not in dynlib_text:
         '        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },\n        { "eglSwapInterval", (uintptr_t)&eglSwapInterval },', 1)
 dynlib.write_text(dynlib_text, encoding="utf-8")
 
+
+# Persist FalsoJNI warnings/errors alongside the port logger. This is essential
+# because Android JNI lookups happen during startup, before the Unity loop.
+fjni_logger = vendor / "lib" / "falso_jni" / "FalsoJNI_Logger.c"
+fjni_log_text = fjni_logger.read_text(encoding="utf-8")
+if "#include <psp2/io/fcntl.h>" not in fjni_log_text:
+    fjni_log_text = fjni_log_text.replace(
+        '#include <psp2/kernel/threadmgr.h>',
+        '#include <psp2/kernel/threadmgr.h>\\n#include <psp2/io/fcntl.h>', 1)
+old_print = "    sceClibPrintf(_fjni_log_buffer_2);"
+new_print = """    sceClibPrintf(_fjni_log_buffer_2); \\
+    SceUID fjni_fd = sceIoOpen("ux0:data/mightymicros.log", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777); \\
+    if (fjni_fd >= 0) { \\
+        sceIoWrite(fjni_fd, _fjni_log_buffer_2, strlen(_fjni_log_buffer_2)); \\
+        sceIoClose(fjni_fd); \\
+    }"""
+if 'sceIoOpen("ux0:data/mightymicros.log"' not in fjni_log_text:
+    if old_print not in fjni_log_text:
+        raise SystemExit("Could not add persistent FalsoJNI diagnostics")
+    fjni_log_text = fjni_log_text.replace(old_print, new_print, 1)
+fjni_logger.write_text(fjni_log_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
