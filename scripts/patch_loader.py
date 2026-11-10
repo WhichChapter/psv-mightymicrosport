@@ -18,7 +18,7 @@ if "source/native_registry.c" not in text:
     text = text.replace(needle, needle + "    source/native_registry.c\n", 1)
 anchor = 'add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})'
 if anchor in text and 'list(APPEND SOURCES source/reimpl/controls.c)' not in text:
-    text = text.replace(anchor, 'if (NDK_PORT)\\n  list(APPEND SOURCES source/reimpl/controls.c)\\nendif()\\n\\n' + anchor, 1)
+    text = text.replace(anchor, 'if (NDK_PORT)\n  list(APPEND SOURCES source/reimpl/controls.c)\nendif()\n\n' + anchor, 1)
 cmake.write_text(text, encoding="utf-8")
 
 text = init.read_text(encoding="utf-8")
