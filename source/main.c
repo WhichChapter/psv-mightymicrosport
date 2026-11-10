@@ -78,6 +78,9 @@ int main(void) {
     uintptr_t resume = mm_method("nativeResume", "()V");
     if (resume) ((void (*)(JNIEnv *, jobject))resume)(env, player);
 
+    uintptr_t focus = mm_method("nativeFocusChanged", "(Z)V");
+    if (focus) ((void (*)(JNIEnv *, jobject, jboolean))focus)(env, player, JNI_TRUE);
+
     jboolean (*render)(JNIEnv *, jobject) =
         (jboolean (*)(JNIEnv *, jobject))mm_method("nativeRender", "()Z");
     if (!render) {
@@ -90,7 +93,6 @@ int main(void) {
     for (;;) {
         controls_poll();
         render(env, player);
-        gl_swap();
 
         SceCtrlData pad;
         sceCtrlPeekBufferPositive(0, &pad, 1);
