@@ -1,5 +1,6 @@
 #include "utils/init.h"
 #include "utils/glutil.h"
+#include "utils/logger.h"
 #include <psp2/kernel/threadmgr.h>
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
