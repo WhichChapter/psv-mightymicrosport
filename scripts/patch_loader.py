@@ -106,7 +106,7 @@ logger.write_text(logger_text, encoding="utf-8")
 fndk_utils = vendor / "lib" / "falso_ndk" / "FalsoNDK_Utils.h"
 fndk_text = fndk_utils.read_text(encoding="utf-8")
 if "#include <cerrno>" not in fndk_text:
-    fndk_text = fndk_text.replace("#pragma once", "#pragma once\n#include <cerrno>", 1)
+    fndk_text = fndk_text.replace("#pragma once", "#pragma once\n#ifdef __cplusplus\n#include <cerrno>\n#else\n#include <errno.h>\n#endif", 1)
 fndk_utils.write_text(fndk_text, encoding="utf-8")
 
 # Add the Android Surface conversion functions missing from the upstream shim.
