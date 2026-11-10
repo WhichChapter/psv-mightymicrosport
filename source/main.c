@@ -147,7 +147,7 @@ int main(void) {
 
     uintptr_t init_web = unity_method("nativeInitWebRequest", "(Ljava/lang/Class;)V");
     if (init_web) {
-        jclass web_class = (*(&jni))->FindClass(&jni, "com/unity3d/player/UnityWebRequest");
+        jclass web_class = jni->FindClass(&jni, "com/unity3d/player/UnityWebRequest");
         ((void (*)(JNIEnv *, jobject, jclass))init_web)(&jni, unity_player, web_class);
         l_info("UnityPlayer.nativeInitWebRequest completed");
     }
