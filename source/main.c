@@ -4,6 +4,7 @@
 #include "multiso.h"
 #include "native_registry.h"
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/processmgr.h>
 #include <psp2/ctrl.h>
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
