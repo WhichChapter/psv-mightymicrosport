@@ -29,6 +29,7 @@ A separate `mighty-micros-raw-elf` artifact contains the pre-SELF ELF and progra
 - Integrates TheFloW's `so_util` Android ARM shared-object loader and FalsoJNI.
 - Enables FalsoNDK for Android native-window, input, sensor, looper and asset APIs.
 - Loads `libunity.so` and `libil2cpp.so` as dependencies, then loads `libmain.so`; assigns SONAMEs and resolves relocations across the modules.
+- Resolves runtime `dlsym()` lookups against all three loaded ELF modules. This is required because Unity dynamically looks up the `il2cpp_*` API from `libil2cpp.so` rather than declaring it as a normal ELF dependency.
 - Captures Unity JNI `RegisterNatives` calls, including native method names, signatures and function addresses.
 - Calls the JNI entry points from `libmain.so` and `libunity.so`.
 - Attempts UnityPlayer startup in Android order: `libmain` JNI setup, Unity JNI setup, `initJni`, WWW/WebRequest registration, then graphics-state recreation, resume/focus and repeated `nativeRender` calls.
