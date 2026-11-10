@@ -15,9 +15,13 @@ with zipfile.ZipFile(archive) as outer:
     if not apks:
         for info in outer.infolist():
             if info.is_dir(): continue
-            target = (out_dir / info.filename).resolve()
-            if out_dir.resolve() not in target.parents:
-                raise RuntimeError("Unsafe archive path: " + info.filename)
+            name = info.filename.replace("\\", "/")
+            if name.startswith("/") or ".." in Path(name).parts:
+                raise RuntimeError("Unsafe archive path: " + name)
+            if name in ("AndroidManifest.xml", "classes.dex") or name.startswith("META-INF/"):
+                target = out_dir / "apk-metadata" / "base" / name
+            else:
+                target = out_dir / name
             target.parent.mkdir(parents=True, exist_ok=True)
             with outer.open(info) as src, open(target, "wb") as dst:
                 shutil.copyfileobj(src, dst)
