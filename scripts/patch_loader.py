@@ -388,5 +388,36 @@ static jboolean mm_www_thread_not_alive(jmethodID id, va_list args) {
         raise SystemExit("Unity WWW JNI compatibility patch did not apply")
     java_impl.write_text(java_text, encoding="utf-8")
 
+# Unity's Android transport bootstrap creates a Java Runnable worker. The
+# Vita port has no Android networking runtime, so register the constructor and
+# run() entry point as explicit no-op compatibility methods. This lets
+# TransportAndroid initialise without calling a missing JNI method ID.
+if "mm_transport_thread_noop" not in java_text:
+    helpers = """
+/* Minimal Java TransportAndroid worker compatibility. */
+static void mm_transport_thread_noop(jmethodID id, va_list args) {
+    (void)id;
+    (void)args;
+}
+
+"""
+    table_anchor = "NameToMethodID nameToMethodId[] = {"
+    if table_anchor not in java_text:
+        raise SystemExit("Could not extend FalsoJNI Java method table for TransportAndroid")
+    java_text = java_text.replace(table_anchor, helpers + table_anchor, 1)
+    java_text = java_text.replace(
+        '    { 4, "isAlive", METHOD_TYPE_BOOLEAN },',
+        '    { 4, "isAlive", METHOD_TYPE_BOOLEAN },\n'
+        '    { 5, "com/unity3d/player/UnityWebRequest/<init>", METHOD_TYPE_VOID },\n'
+        '    { 6, "run", METHOD_TYPE_VOID },', 1)
+    java_text = java_text.replace(
+        '    { 3, mm_www_thread_noop },',
+        '    { 3, mm_www_thread_noop },\n'
+        '    { 5, mm_transport_thread_noop },\n'
+        '    { 6, mm_transport_thread_noop },', 1)
+    if '{ 5, "com/unity3d/player/UnityWebRequest/<init>", METHOD_TYPE_VOID }' not in java_text:
+        raise SystemExit("TransportAndroid JNI method registrations did not apply")
+    java_impl.write_text(java_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
