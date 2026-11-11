@@ -177,7 +177,7 @@ dynlib_text = dynlib.read_text(encoding="utf-8")
 if "#include <psp2/kernel/threadmgr.h>" not in dynlib_text:
     dynlib_text = dynlib_text.replace(
         '#include "utils/logger.h"',
-        '#include "utils/logger.h"\n#include <psp2/kernel/threadmgr.h>', 1)
+        '#include "utils/logger.h"' + chr(10) + '#include <psp2/kernel/threadmgr.h>', 1)
 
 if "static int mm_gettid(void)" not in dynlib_text:
     gettid_impl = """static int mm_gettid(void) {
@@ -196,7 +196,7 @@ if '{ "gettid", (uintptr_t)&mm_gettid }' not in dynlib_text:
         raise SystemExit("Could not register gettid: syscall table anchor missing")
     dynlib_text = dynlib_text.replace(
         syscalls_anchor,
-        '        { "gettid", (uintptr_t)&mm_gettid },\n' + syscalls_anchor, 1)
+        '        { "gettid", (uintptr_t)&mm_gettid },' + chr(10) + syscalls_anchor, 1)
 
 # Android's bionic exports strsep, but the upstream Vita loader's import table
 # does not. Provide the POSIX/BSD-compatible implementation locally so ELF
@@ -233,7 +233,7 @@ if '{ "getauxval", (uintptr_t)&mm_getauxval }' not in dynlib_text:
     if syscalls_anchor not in dynlib_text:
         raise SystemExit("Could not register getauxval: syscall table anchor missing")
     dynlib_text = dynlib_text.replace(syscalls_anchor,
-        '        { "getauxval", (uintptr_t)&mm_getauxval },\n' + syscalls_anchor, 1)
+        '        { "getauxval", (uintptr_t)&mm_getauxval },' + chr(10) + syscalls_anchor, 1)
 
 if "static char *mm_strsep(" not in dynlib_text:
     strsep_impl = """static char *mm_strsep(char **stringp, const char *delim) {
