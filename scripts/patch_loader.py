@@ -142,6 +142,40 @@ dynlib_text = dynlib.read_text(encoding="utf-8")
 # Android's bionic exports strsep, but the upstream Vita loader's import table
 # does not. Provide the POSIX/BSD-compatible implementation locally so ELF
 # relocation can resolve the symbol instead of leaving a null import.
+# Add a Vita-specific getauxval implementation for Android CPU feature probes.
+if "static unsigned long mm_getauxval(" not in dynlib_text:
+    aux_impl = """static unsigned long mm_getauxval(unsigned long type) {
+    switch (type) {
+        case 6:  /* AT_PAGESZ */ return 4096;
+        case 16: /* AT_HWCAP: Cortex-A9 ARMv7, VFPv3-D32 and NEON */
+            return (1UL << 4)  | /* FAST_MULT */
+                   (1UL << 6)  | /* VFP */
+                   (1UL << 7)  | /* EDSP */
+                   (1UL << 11) | /* THUMBEE */
+                   (1UL << 12) | /* NEON */
+                   (1UL << 13) | /* VFPv3 */
+                   (1UL << 15) | /* TLS */
+                   (1UL << 19);  /* VFPD32 */
+        case 17: /* AT_CLKTCK */ return 100;
+        case 23: /* AT_SECURE */ return 0;
+        case 26: /* AT_HWCAP2 */ return 0;
+        default: return 0;
+    }
+}
+
+"""
+    table_anchor = "so_default_dynlib default_dynlib[] = {"
+    if table_anchor not in dynlib_text:
+        raise SystemExit("Could not add getauxval: dynlib table anchor missing")
+    dynlib_text = dynlib_text.replace(table_anchor, aux_impl + table_anchor, 1)
+
+if '{ "getauxval", (uintptr_t)&mm_getauxval }' not in dynlib_text:
+    syscalls_anchor = '        { "getpagesize", (uintptr_t)&getpagesize },'
+    if syscalls_anchor not in dynlib_text:
+        raise SystemExit("Could not register getauxval: syscall table anchor missing")
+    dynlib_text = dynlib_text.replace(syscalls_anchor,
+        '        { "getauxval", (uintptr_t)&mm_getauxval },\n' + syscalls_anchor, 1)
+
 if "static char *mm_strsep(" not in dynlib_text:
     strsep_impl = """static char *mm_strsep(char **stringp, const char *delim) {
     if (!stringp || !*stringp) return NULL;
