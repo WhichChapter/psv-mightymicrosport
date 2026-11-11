@@ -2,7 +2,7 @@ name: Mighty Micros Android-to-Vita port
 
 on:
   push:
-    branches: [GPT]
+    branches: [vpk-only]
   workflow_dispatch:
 
 permissions:
@@ -162,105 +162,10 @@ jobs:
           mkdir -p ../../out
           cp build/mighty_micros.vpk ../../out/
 
-      - name: Upload raw Vita ELF diagnostics
-        if: always()
+      - name: Upload VPK
         uses: actions/upload-artifact@v4
         with:
-          name: mighty-micros-raw-elf
-          path: |
-            vendor/soloader/build/so_loader
-            reports/elf-segments.txt
-          if-no-files-found: ignore
-          retention-days: 1
-
-      - name: Package game data into small VitaShell-friendly parts
-        shell: bash
-        run: |
-          set -euxo pipefail
-          mkdir -p out
-          python3 - <<'PY'
-          from pathlib import Path
-          from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
-
-          root = Path("package/game")
-          output = Path("out")
-          parts_dir = Path("out/data-parts")
-          parts_dir.mkdir(parents=True, exist_ok=True)
-
-          files = sorted(p for p in root.rglob("*") if p.is_file())
-          if not files:
-              raise SystemExit("No game data files were extracted")
-
-          # Keep each inner ZIP modest: at most 200 files or 96 MiB
-          # uncompressed, whichever comes first. Paths stay relative to
-          # package/game so extracting every part into the same folder merges
-          # them into the original assets/, lib/, etc. layout.
-          batches = []
-          batch = []
-          batch_bytes = 0
-          for path in files:
-              size = path.stat().st_size
-              if batch and (len(batch) >= 200 or batch_bytes + size > 96 * 1024 * 1024):
-                  batches.append(batch)
-                  batch = []
-                  batch_bytes = 0
-              batch.append(path)
-              batch_bytes += size
-          if batch:
-              batches.append(batch)
-
-          part_names = []
-          for index, batch in enumerate(batches, 1):
-              name = f"mighty-micros-data-{index:03d}.zip"
-              part_path = parts_dir / name
-              with ZipFile(part_path, "w", compression=ZIP_DEFLATED, compresslevel=6, allowZip64=True) as archive:
-                  for path in batch:
-                      archive.write(path, path.relative_to(root).as_posix())
-              part_names.append(name)
-              print(f"Created {name}: {len(batch)} files, {sum(p.stat().st_size for p in batch):,} uncompressed bytes")
-
-          # The outer ZIP contains only the smaller ZIP parts. Extracting it
-          # on Vita creates a small number of files, not thousands of assets.
-          outer = output / "mighty-micros-data.zip"
-          with ZipFile(outer, "w", compression=ZIP_STORED, allowZip64=True) as archive:
-              for name in part_names:
-                  archive.write(parts_dir / name, f"parts/{name}")
-              archive.writestr("README-FIRST.txt",
-              "MIGHTY MICROS DATA INSTALL" + chr(10) * 2 +
-              "1. Extract this ZIP to ux0:data/mightymicros-parts/" + chr(10) +
-              "2. Open each ZIP inside parts/ and extract its contents into ux0:data/mightymicros/" + chr(10) +
-              "3. Repeat for every numbered part. The numbered ZIPs can be extracted in any order." + chr(10) +
-              "4. Do not rename the assets or lib folders." + chr(10))
-          print(f"Created {outer}: {len(part_names)} inner ZIP parts, {outer.stat().st_size:,} bytes")
-
-          # Validate every inner archive and ensure no file is omitted/duplicated.
-          seen = []
-          for name in part_names:
-              with ZipFile(parts_dir / name) as archive:
-                  bad = archive.testzip()
-                  if bad:
-                      raise SystemExit(f"Corrupt inner ZIP {name}: {bad}")
-                  seen.extend(archive.namelist())
-          expected = [p.relative_to(root).as_posix() for p in files]
-          if sorted(seen) != sorted(expected):
-              raise SystemExit("Split data validation failed: file list differs from source")
-          with ZipFile(outer) as archive:
-              bad = archive.testzip()
-              if bad:
-                  raise SystemExit(f"Corrupt outer ZIP: {bad}")
-          print(f"Validated all {len(files)} source files across {len(part_names)} parts")
-          PY
-          cp reports/package.txt out/
-          cp reports/exports.txt out/ || true
-          cp reports/imports.txt out/ || true
-          cp reports/java-entrypoints.txt out/ || true
-          cp reports/unity-strings.txt out/ || true
-          cp reports/entry-so.txt out/ || true
-
-      - name: Upload VPK, split game data and analysis
-        uses: actions/upload-artifact@v4
-        with:
-          name: mighty-micros-port-build
-          path: out/*
+          name: mighty-micros-vpk
+          path: out/mighty_micros.vpk
           if-no-files-found: error
           retention-days: 7
