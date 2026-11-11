@@ -138,6 +138,45 @@ fndk_utils.write_text(fndk_text, encoding="utf-8")
 # Add the Android Surface conversion functions missing from the upstream shim.
 dynlib = vendor / "source" / "dynlib.c"
 dynlib_text = dynlib.read_text(encoding="utf-8")
+
+# Android's bionic exports strsep, but the upstream Vita loader's import table
+# does not. Provide the POSIX/BSD-compatible implementation locally so ELF
+# relocation can resolve the symbol instead of leaving a null import.
+if "static char *mm_strsep(" not in dynlib_text:
+    strsep_impl = """static char *mm_strsep(char **stringp, const char *delim) {
+    if (!stringp || !*stringp) return NULL;
+
+    char *start = *stringp;
+    char *cursor = start;
+    while (*cursor) {
+        for (const char *d = delim; *d; ++d) {
+            if (*cursor == *d) {
+                *cursor = '\\0';
+                *stringp = cursor + 1;
+                return start;
+            }
+        }
+        ++cursor;
+    }
+
+    *stringp = NULL;
+    return start;
+}
+
+"""
+    table_anchor = "so_default_dynlib default_dynlib[] = {"
+    if table_anchor not in dynlib_text:
+        raise SystemExit("Could not add strsep: upstream dynlib table anchor missing")
+    dynlib_text = dynlib_text.replace(table_anchor, strsep_impl + table_anchor, 1)
+
+if '{ "strsep", (uintptr_t)&mm_strsep }' not in dynlib_text:
+    strings_anchor = "        // Strings\n"
+    if strings_anchor not in dynlib_text:
+        raise SystemExit("Could not add strsep import: upstream Strings table anchor missing")
+    dynlib_text = dynlib_text.replace(
+        strings_anchor,
+        strings_anchor + '        { "strsep", (uintptr_t)&mm_strsep },\n',
+        1)
 if '#include "multiso.h"' not in dynlib_text:
     dynlib_text = dynlib_text.replace(
         '#include "utils/logger.h"',
