@@ -362,7 +362,7 @@ static jboolean mm_www_thread_not_alive(jmethodID id, va_list args) {
 }
 
 """
-    table_anchor = "/*\\n * JNI Methods\\n*/"
+    table_anchor = "NameToMethodID nameToMethodId[] = {};"
     if table_anchor not in java_text:
         raise SystemExit("Could not patch FalsoJNI Java method table")
     java_text = java_text.replace(table_anchor, helpers + table_anchor, 1)
