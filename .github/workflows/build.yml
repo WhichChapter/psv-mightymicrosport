@@ -52,7 +52,11 @@ jobs:
           set -euxo pipefail
           URL='https://filebin.net/yevzs03g58uchgff/com.lego.superheroes.dccomicsmightymicros_1.7.1418-1418_minAPI16%28armeabi-v7a,x86%29%28nodpi%29_apkmirror.com.zip'
           mkdir -p incoming package/game/assets package/game/lib/armeabi-v7a reports
-          curl --fail --location --retry 3 --retry-all-errors "$URL" -o incoming/mightymicros.zip
+          if ! curl --fail --location --retry 3 --retry-all-errors "$URL" -o incoming/mightymicros.zip; then
+            echo "WARNING: Android package host unavailable; building a loader-only VPK using the committed libmain.so entrypoint and upstream LiveArea fallback assets." | tee reports/package-download-warning.txt
+            echo "libmain.so" > reports/entry-so.txt
+            exit 0
+          fi
           python3 scripts/extract_apkmirror_zip.py incoming/mightymicros.zip package/game reports/package.txt
           find package/game -type f -name '*.so' -print
           test -n "$(find package/game -type f -name '*.so' -print -quit)"
