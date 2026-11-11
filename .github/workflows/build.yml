@@ -37,6 +37,56 @@ jobs:
           set -euxo pipefail
           printf 'y\n' | "$VITASDK/bin/vdpm" install opensles zlib kubridge taihen libmathneon SceShaccCgExt vitaShaRK
 
+      - name: Build hardened Opus 1.6.1 for Vita
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 --branch v1.6.1 https://github.com/xiph/opus.git /tmp/opus
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path("/tmp/opus/silk/A2NLSF.c")
+          text = source.read_text(encoding="utf-8")
+          marker = "    /* Store pointers to array */"
+          guard = """    /*
+     * Vita-port safety guard:
+     * SILK LPC orders are even and cannot exceed SILK_MAX_ORDER_LPC.
+     * The polynomial work arrays below are sized for that maximum. Reject
+     * malformed orders before they can index beyond the stack arrays.
+     */
+    if (NLSF == NULL || d < 2 || d > SILK_MAX_ORDER_LPC || (d & 1)) {
+        return;
+    }
+    if (a_Q16 == NULL) {
+        /* Use a stable white-spectrum fallback when coefficients are absent. */
+        for (i = 0; i < d; i++) {
+            NLSF[i] = (opus_int16)(((i + 1) * 32768) / (d + 1));
+        }
+        return;
+    }
+
+"""
+          if "Vita-port safety guard" not in text:
+              if marker not in text:
+                  raise SystemExit("Could not locate silk_A2NLSF insertion point")
+              text = text.replace(marker, guard + marker, 1)
+              source.write_text(text, encoding="utf-8")
+          print("Patched Opus SILK order and null-coefficient validation")
+          PY
+          cmake -S /tmp/opus -B /tmp/opus-build \
+            -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" \
+            -DCMAKE_INSTALL_PREFIX="$VITASDK/arm-vita-eabi" \
+            -DOPUS_BUILD_SHARED_LIBRARY=OFF \
+            -DOPUS_BUILD_TESTING=OFF \
+            -DOPUS_BUILD_PROGRAMS=OFF \
+            -DOPUS_DISABLE_INTRINSICS=ON \
+            -DOPUS_INSTALL_PKG_CONFIG_MODULE=OFF \
+            -DOPUS_INSTALL_CMAKE_CONFIG_MODULE=OFF
+          cmake --build /tmp/opus-build --parallel 2
+          cmake --install /tmp/opus-build
+          test -f "$VITASDK/arm-vita-eabi/lib/libopus.a"
+          echo "Installed guarded Opus: $VITASDK/arm-vita-eabi/lib/libopus.a"
+
       - name: Fetch real Android-to-Vita loader framework
         run: |
           git clone --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
