@@ -339,5 +339,54 @@ if "0x9A000000" in patch_text or "0x9A000FA0" in patch_text or "0x9A000FC0" in p
     raise SystemExit("Old overlapping kuser address remains in patch.c")
 patch.write_text(patch_text, encoding="utf-8")
 
+
+# Unity 2017's native WWW bridge requires Java-side Thread methods on its
+# com.unity3d.player.WWW wrapper. FalsoJNI's boilerplate starts with an empty
+# method table, so nativeInitWWW aborts when GetMethodID("start") returns NULL.
+# Register the required methods. Network work itself remains unavailable on
+# Vita, but these safe stubs allow Unity's optional WWW bridge to initialise.
+java_impl = vendor / "source" / "java.c"
+java_text = java_impl.read_text(encoding="utf-8")
+if "mm_www_thread_noop" not in java_text:
+    helpers = """
+/* Minimal Java WWW thread compatibility for Unity's Android JNI bootstrap. */
+static void mm_www_thread_noop(jmethodID id, va_list args) {
+    (void)id;
+    (void)args;
+}
+
+static jboolean mm_www_thread_not_alive(jmethodID id, va_list args) {
+    (void)id;
+    (void)args;
+    return JNI_FALSE;
+}
+
+"""
+    table_anchor = "/*\\n * JNI Methods\\n*/"
+    if table_anchor not in java_text:
+        raise SystemExit("Could not patch FalsoJNI Java method table")
+    java_text = java_text.replace(table_anchor, helpers + table_anchor, 1)
+    java_text = java_text.replace(
+        "NameToMethodID nameToMethodId[] = {};",
+        """NameToMethodID nameToMethodId[] = {
+    { 1, "com/unity3d/player/WWW/<init>", METHOD_TYPE_VOID },
+    { 2, "start", METHOD_TYPE_VOID },
+    { 3, "join", METHOD_TYPE_VOID },
+    { 4, "isAlive", METHOD_TYPE_BOOLEAN },
+};""", 1)
+    java_text = java_text.replace(
+        "MethodsBoolean methodsBoolean[] = {};",
+        "MethodsBoolean methodsBoolean[] = { { 4, mm_www_thread_not_alive } };", 1)
+    java_text = java_text.replace(
+        "MethodsVoid methodsVoid[] = {};",
+        """MethodsVoid methodsVoid[] = {
+    { 1, mm_www_thread_noop },
+    { 2, mm_www_thread_noop },
+    { 3, mm_www_thread_noop },
+};""", 1)
+    if "mm_www_thread_noop" not in java_text or '{ 2, "start", METHOD_TYPE_VOID }' not in java_text:
+        raise SystemExit("Unity WWW JNI compatibility patch did not apply")
+    java_impl.write_text(java_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
