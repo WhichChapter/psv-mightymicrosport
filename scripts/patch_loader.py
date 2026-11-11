@@ -67,6 +67,22 @@ text = text.replace('''    settings_load();
     resolve_imports(&so_mod);
     l_success("Android shared-object imports resolved.");''',1)
 
+text = text.replace('''    so_patch();
+    l_success("SO patched.");''', '''    l_info("CHECKPOINT: entering so_patch");
+    so_patch();
+    l_info("CHECKPOINT: so_patch returned");
+    l_success("SO patched.");''', 1)
+
+text = text.replace('''    so_initialize(&so_mod);
+    mm_initialize_dependencies();
+    l_success("Android shared objects initialized.");''', '''    l_info("CHECKPOINT: entering libmain so_initialize");
+    so_initialize(&so_mod);
+    l_info("CHECKPOINT: libmain so_initialize returned");
+    l_info("CHECKPOINT: entering dependency initialization");
+    mm_initialize_dependencies();
+    l_info("CHECKPOINT: dependency initialization returned");
+    l_success("Android shared objects initialized.");''', 1)
+
 text = text.replace('''    so_flush_caches(&so_mod);
     l_success("SO caches flushed.");
 
