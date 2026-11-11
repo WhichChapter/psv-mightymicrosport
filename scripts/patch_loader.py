@@ -172,6 +172,40 @@ static void mm_so_util_log(const char *fmt, ...) {
 dynlib = vendor / "source" / "dynlib.c"
 dynlib_text = dynlib.read_text(encoding="utf-8")
 
+# The latest Vita crash was traced exactly: libunity.so calls its imported
+# strlen at offset 0x5AE668 with r0 == 0xFFFFFFF8. Reject obvious invalid
+# Android string sentinels instead of letting newlib fault inside strlen.
+# Log the calling ARM address so the next run identifies the Unity call site.
+if "static size_t mm_android_strlen(" not in dynlib_text:
+    safe_strlen = """
+static size_t mm_android_strlen(const char *value) {
+    uintptr_t address = (uintptr_t)value;
+    if (address < 0x10000 || address >= 0xF0000000) {
+        uintptr_t caller = (uintptr_t)__builtin_return_address(0);
+        l_error("Rejected invalid Android strlen pointer 0x%08x from 0x%08x",
+                (unsigned int)address, (unsigned int)caller);
+        return 0;
+    }
+
+    const char *cursor = value;
+    while (*cursor) ++cursor;
+    return (size_t)(cursor - value);
+}
+
+"""
+    table_anchor = "so_default_dynlib default_dynlib[] = {"
+    if table_anchor not in dynlib_text:
+        raise SystemExit("Could not add guarded Android strlen")
+    dynlib_text = dynlib_text.replace(table_anchor, safe_strlen + table_anchor, 1)
+
+strlen_anchor = '        { "strlen", (uintptr_t)&strlen },'
+if strlen_anchor in dynlib_text:
+    dynlib_text = dynlib_text.replace(
+        strlen_anchor,
+        '        { "strlen", (uintptr_t)&mm_android_strlen },', 1)
+elif '{ "strlen", (uintptr_t)&mm_android_strlen }' not in dynlib_text:
+    raise SystemExit("Could not redirect Android strlen import")
+
 # Android bionic's gettid() returns the calling Linux thread ID. On Vita,
 # SceKernelGetThreadId() is the corresponding current-thread identifier.
 if "#include <psp2/kernel/threadmgr.h>" not in dynlib_text:
