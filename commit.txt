@@ -7,3 +7,4 @@ rerun trigger 2026-11-11 13:00 - purple toaster
 gettid implementation build trigger 19:07
 gettid newline fix trigger
 Build trigger after fixing multiline patch generation: a362974ff7214b67f758dc8c637e16891522d691
+Null-safe Android I/O wrappers: 1648bad7ea9dedf675744d309e08b1da2416fc96
