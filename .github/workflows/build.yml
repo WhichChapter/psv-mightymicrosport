@@ -48,25 +48,19 @@ jobs:
           source = Path("/tmp/opus/silk/A2NLSF.c")
           text = source.read_text(encoding="utf-8")
           marker = "    /* Store pointers to array */"
-          guard = """    /*
-     * Vita-port safety guard:
-     * SILK LPC orders are even and cannot exceed SILK_MAX_ORDER_LPC.
-     * The polynomial work arrays below are sized for that maximum. Reject
-     * malformed orders before they can index beyond the stack arrays.
-     */
-    if (NLSF == NULL || d < 2 || d > SILK_MAX_ORDER_LPC || (d & 1)) {
-        return;
-    }
-    if (a_Q16 == NULL) {
-        /* Use a stable white-spectrum fallback when coefficients are absent. */
-        for (i = 0; i < d; i++) {
-            NLSF[i] = (opus_int16)(((i + 1) * 32768) / (d + 1));
-        }
-        return;
-    }
-
-"""
-          if "Vita-port safety guard" not in text:
+          guard = (
+              "    /* Vita-port guard: SILK order must be even and <= maximum. */\n"
+              "    if (NLSF == NULL || d < 2 || d > SILK_MAX_ORDER_LPC || (d & 1)) {\n"
+              "        return;\n"
+              "    }\n"
+              "    if (a_Q16 == NULL) {\n"
+              "        for (i = 0; i < d; i++) {\n"
+              "            NLSF[i] = (opus_int16)(((i + 1) * 32768) / (d + 1));\n"
+              "        }\n"
+              "        return;\n"
+              "    }\n\n"
+          )
+          if "Vita-port guard" not in text:
               if marker not in text:
                   raise SystemExit("Could not locate silk_A2NLSF insertion point")
               text = text.replace(marker, guard + marker, 1)
@@ -86,7 +80,6 @@ jobs:
           cmake --install /tmp/opus-build
           test -f "$VITASDK/arm-vita-eabi/lib/libopus.a"
           echo "Installed guarded Opus: $VITASDK/arm-vita-eabi/lib/libopus.a"
-
       - name: Fetch real Android-to-Vita loader framework
         run: |
           git clone --depth 1 https://github.com/v-atamanenko/soloader-boilerplate.git vendor/soloader
