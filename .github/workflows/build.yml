@@ -122,6 +122,16 @@ jobs:
           cp ../../source/native_window.c source/native_window.c
           cp ../../source/native_window.h source/native_window.h
           cp ../../source/egl_extra.c source/egl_extra.c
+
+          # Reduce VitaGL's physically-contiguous allocation pressure.
+          # PHYCONT_ON_DEMAND avoids reserving one large contiguous heap;
+          # NO_CIRCULAR_POOL avoids a large up-front transient pool.
+          sed -i 's/SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1/SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1 PHYCONT_ON_DEMAND=1 NO_CIRCULAR_POOL=1/' CMakeLists.txt
+
+          # Start with the smallest practical framebuffer setup: no MSAA and
+          # a 1 MiB command buffer instead of 4x MSAA / 6 MiB.
+          sed -i 's/6 \* 1024 \* 1024, SCE_GXM_MULTISAMPLE_4X/1024 * 1024, SCE_GXM_MULTISAMPLE_NONE/' source/utils/glutil.c
+
           python3 ../../scripts/patch_loader.py
           if [ -f ../../package/game/res/drawable-xxxhdpi-v4/app_icon.png ]; then
             convert ../../package/game/res/drawable-xxxhdpi-v4/app_icon.png -resize 128x128! extras/livearea/icon0.png
