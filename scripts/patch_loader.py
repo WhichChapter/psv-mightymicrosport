@@ -288,5 +288,17 @@ if 'sceIoOpen("ux0:data/mightymicros.log"' not in fjni_log_text:
     fjni_log_text = fjni_log_text.replace(old_print, new_print, 1)
 fjni_logger.write_text(fjni_log_text, encoding="utf-8")
 
+# The upstream ARM kuser helper reserves 0x9A000000, but the Android
+# libraries loaded by this port occupy 0x98000000..0x9AF00000. Put the
+# 4 KiB helper block in the free gap before the first Android library.
+patch = vendor / "source" / "patch.c"
+patch_text = patch.read_text(encoding="utf-8")
+patch_text = patch_text.replace("0x9A000000", "0x97000000")
+patch_text = patch_text.replace("0x9A000FA0", "0x97000FA0")
+patch_text = patch_text.replace("0x9A000FC0", "0x97000FC0")
+if "0x9A000000" in patch_text or "0x9A000FA0" in patch_text or "0x9A000FC0" in patch_text:
+    raise SystemExit("Old overlapping kuser address remains in patch.c")
+patch.write_text(patch_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
