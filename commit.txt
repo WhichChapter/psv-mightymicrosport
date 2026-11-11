@@ -2,3 +2,5 @@ mighty micros build trigger
 banana spaceship 42
 
 log probe 73
+
+rerun trigger 2026-11-11 13:00 - purple toaster
