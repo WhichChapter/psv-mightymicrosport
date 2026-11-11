@@ -512,5 +512,104 @@ static void mm_transport_thread_noop(jmethodID id, va_list args) {
         raise SystemExit("TransportAndroid JNI method registrations did not apply")
     java_impl.write_text(java_text, encoding="utf-8")
 
+
+# Defend the upstream Android I/O wrappers against null pointers. Unity can
+# legitimately probe unavailable Android paths; the upstream wrappers call
+# strcmp() before validating them, which crashes the Vita on stat(NULL).
+io_source = vendor / "source" / "reimpl" / "io.c"
+io_text = io_source.read_text(encoding="utf-8")
+if "#include <errno.h>" not in io_text:
+    io_text = io_text.replace("#include <string.h>", "#include <string.h>\n#include <errno.h>", 1)
+
+io_replacements = [
+    (
+'''FILE * fopen_soloader(const char * filename, const char * mode) {
+    if (strcmp(filename, "/proc/cpuinfo") == 0) {''',
+'''FILE * fopen_soloader(const char * filename, const char * mode) {
+    if (!filename || !mode) {
+        errno = EFAULT;
+        return NULL;
+    }
+    if (strcmp(filename, "/proc/cpuinfo") == 0) {'''
+    ),
+    (
+'''int open_soloader(const char * path, int oflag, ...) {
+    if (strcmp(path, "/proc/cpuinfo") == 0) {''',
+'''int open_soloader(const char * path, int oflag, ...) {
+    if (!path) {
+        errno = EFAULT;
+        return -1;
+    }
+    if (strcmp(path, "/proc/cpuinfo") == 0) {'''
+    ),
+    (
+'''int fstat_soloader(int fd, stat64_bionic * buf) {
+    struct stat st;''',
+'''int fstat_soloader(int fd, stat64_bionic * buf) {
+    if (!buf) {
+        errno = EFAULT;
+        return -1;
+    }
+    struct stat st;'''
+    ),
+    (
+'''int stat_soloader(const char * path, stat64_bionic * buf) {
+    if (strcmp(path, "/system/lib/libOpenSLES.so") == 0) {''',
+'''int stat_soloader(const char * path, stat64_bionic * buf) {
+    if (!path || !buf) {
+        errno = EFAULT;
+        return -1;
+    }
+    if (strcmp(path, "/system/lib/libOpenSLES.so") == 0) {'''
+    ),
+    (
+'''DIR* opendir_soloader(char* _pathname) {
+    DIR* ret = opendir(_pathname);''',
+'''DIR* opendir_soloader(char* _pathname) {
+    if (!_pathname) {
+        errno = EFAULT;
+        return NULL;
+    }
+    DIR* ret = opendir(_pathname);'''
+    ),
+    (
+'''struct dirent64_bionic * readdir_soloader(DIR * dir) {
+    static struct dirent64_bionic dirent_tmp;''',
+'''struct dirent64_bionic * readdir_soloader(DIR * dir) {
+    if (!dir) {
+        errno = EFAULT;
+        return NULL;
+    }
+    static struct dirent64_bionic dirent_tmp;'''
+    ),
+    (
+'''int readdir_r_soloader(DIR * dirp, dirent64_bionic * entry,
+                       dirent64_bionic ** result) {
+    struct dirent dirent_tmp;''',
+'''int readdir_r_soloader(DIR * dirp, dirent64_bionic * entry,
+                       dirent64_bionic ** result) {
+    if (!dirp || !entry || !result) {
+        errno = EFAULT;
+        return EFAULT;
+    }
+    struct dirent dirent_tmp;'''
+    ),
+    (
+'''int closedir_soloader(DIR * dir) {
+    int ret = closedir(dir);''',
+'''int closedir_soloader(DIR * dir) {
+    if (!dir) {
+        errno = EFAULT;
+        return -1;
+    }
+    int ret = closedir(dir);'''
+    )
+]
+for old, new in io_replacements:
+    if old not in io_text:
+        raise SystemExit("Could not apply null-safety patch to upstream I/O wrapper: " + old.splitlines()[0])
+    io_text = io_text.replace(old, new, 1)
+io_source.write_text(io_text, encoding="utf-8")
+
 init.write_text(text, encoding="utf-8")
 print("Patched upstream loader to map libunity.so + libil2cpp.so before libmain.so.")
