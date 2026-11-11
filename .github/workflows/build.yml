@@ -168,6 +168,10 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DNDK_PORT=ON -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake"
           cmake --build build --target so_loader --parallel 2
           readelf -l build/so_loader | tee ../../reports/elf-segments.txt
+          # Keep the exact executable and symbol/disassembly data for crash analysis.
+          arm-vita-eabi-nm -n build/so_loader > ../../reports/loader-symbols.txt
+          arm-vita-eabi-objdump -d -C build/so_loader > ../../reports/loader-disassembly.txt
+          cp build/so_loader ../../reports/so_loader.elf
           cmake --build build --parallel 2
           mkdir -p ../../out
           cp build/mighty_micros.vpk ../../out/
@@ -179,3 +183,11 @@ jobs:
           path: out/mighty_micros.vpk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Upload crash-analysis symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: mighty-micros-crash-analysis
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14
