@@ -136,6 +136,39 @@ if "#include <cerrno>" not in fndk_text:
 fndk_utils.write_text(fndk_text, encoding="utf-8")
 
 # Add the Android Surface conversion functions missing from the upstream shim.
+# Persist so_util's unresolved-import diagnostics. Its upstream critical
+# logger only calls sceClibPrintf, so the Vita-side log misses the exact
+# Android symbol that causes reloc_err() to abort at runtime.
+so_util = vendor / "lib" / "so_util" / "so_util.c"
+so_util_text = so_util.read_text(encoding="utf-8")
+if "mm_so_util_log(" not in so_util_text:
+    so_util_text = so_util_text.replace(
+        '#include <string.h>',
+        '#include <string.h>\n#include <stdarg.h>\n#include <psp2/io/fcntl.h>', 1)
+    logger_impl = """
+static void mm_so_util_log(const char *fmt, ...) {
+    char buffer[768];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    sceClibPrintf("%s", buffer);
+    SceUID fd = sceIoOpen("ux0:data/mightymicros.log",
+        SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0777);
+    if (fd >= 0) {
+        sceIoWrite(fd, buffer, strlen(buffer));
+        sceIoClose(fd);
+    }
+}
+
+"""
+    macro = '#define SO_UTIL_LOG_CRITICAL sceClibPrintf'
+    if macro not in so_util_text:
+        raise SystemExit("Could not find so_util critical logger macro")
+    so_util_text = so_util_text.replace(macro, logger_impl + '#define SO_UTIL_LOG_CRITICAL mm_so_util_log', 1)
+    so_util.write_text(so_util_text, encoding="utf-8")
+
 dynlib = vendor / "source" / "dynlib.c"
 dynlib_text = dynlib.read_text(encoding="utf-8")
 
